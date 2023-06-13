@@ -1,5 +1,5 @@
 """
-Define `TimeTag` class and a function `get_time_tags()` for generating
+Define `TimeTag` class and a function `construct_time_tags()` for generating
 these objects.
 
 `TimeTag` objects are initiated, stored and used internally by
@@ -9,7 +9,6 @@ these objects.
 
 from typing import List, Tuple
 
-from data_time_tags import TIME_TAGS
 from .exceptions import (
     TimeTagErrorGroup, TimeFieldErrorGroup, IncorrectTimeFormatError,
     TimeDoesntExistError, TimeOrderError
@@ -48,12 +47,12 @@ class TimeTag:
             raise TimeOrderError(self.start_tuple, self.stop_tuple, self.text)
 
 
-def get_time_tags() -> List[TimeTag]:
-    time_tags = []
+def construct_time_tags(time_tags: List[Tuple[str, str, str]]) -> List[TimeTag]:
+    ttags = []
     err_list = []
-    for tag in TIME_TAGS:
+    for tag in time_tags:
         try:
-            time_tags.append(TimeTag(*tag))
+            ttags.append(TimeTag(*tag))
         except TimeFieldErrorGroup as err_group:
             for err in err_group.exceptions:
                 err_list.append(err)
@@ -62,4 +61,4 @@ def get_time_tags() -> List[TimeTag]:
     
     if len(err_list) > 0:
         raise TimeTagErrorGroup('TimeTagErrorGroup', tuple(err_list))
-    return time_tags
+    return ttags

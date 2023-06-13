@@ -15,38 +15,58 @@ class BirthdayErrorGroup(ExceptionGroup):
     pass
 
 
-class IncorrectDateFormatError(Exception):
-    def __init__(self, date_str: str, name: str):
-        self.date_str = date_str
+class IncorrectDateTypeError(Exception):
+    def __init__(self, type_str: str, name: str):
+        self.type_str = type_str
         self.name = name
     
     def __str__(self):
         return (
-            f"Incorrect birthday '{self.date_str}' for '{self.name}'. "
+            f"Incorrect type {self.type_str} of parameter 'date_str' for "
+            f"'{self.name}'. Expected a string or datetime.date."
+            )
+
+class IncorrectNameTypeError(Exception):
+    def __init__(self, type_str: str):
+        self.type_str = type_str
+    
+    def __str__(self):
+        return (
+            f"Incorrect type for name '{self.type_str}'. Expected a string."
+            )
+
+class IncorrectDateFormatError(Exception):
+    def __init__(self, date_str: str, name: str):
+        self.date = date_str
+        self.name = name
+    
+    def __str__(self):
+        return (
+            f"Incorrect birthday '{self.date}' for '{self.name}'. "
             f"Expected YYYY-MM-DD or MM-DD."
             )
 
 
 class NullYearError(Exception):
     def __init__(self, date_str: str, name: str, null_year: int):
-        self.date_str = date_str
+        self.date = date_str
         self.name = name
         self.null_year = null_year
     
     def __str__(self):
         return (
-            f"Null year {self.null_year} used in birthday '{self.date_str}' "
+            f"Null year {self.null_year} used in birthday '{self.date}' "
             f"for '{self.name}'."
             )
 
 class DateDoesntExistError(Exception):
     def __init__(self, date_str: str, name: str):
-        self.date_str = date_str
+        self.date = date_str
         self.name = name
     
     def __str__(self):
         return (
-            f"Incorrect numeric values in birthday '{self.date_str}' for "
+            f"Incorrect numeric values in birthday '{self.date}' for "
             f"'{self.name}'."
             )
 
@@ -102,12 +122,3 @@ class IncorrectReferenceError(Exception):
     def __init__(self, parameter_name: str, arg_type: object):
         self.parameter_name = parameter_name
         self.arg_type = arg_type
-
-
-def format_errors(err_group: ExceptionGroup) -> str:
-    err_txt = ''
-    for exc in err_group.exceptions:
-        if err_txt != '':
-            err_txt += '\n'
-        err_txt += fill(str(exc))
-    return err_txt
