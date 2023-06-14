@@ -11,8 +11,8 @@ from typing import List, Tuple
 import datetime
 
 from .exceptions import (
-    BirthdayErrorGroup, IncorrectDateTypeError, IncorrectNameTypeError,
-    IncorrectDateFormatError, NullYearError, DateDoesntExistError
+    BirthdayErrorGroup, IncorrectParameterTypeError, IncorrectDateFormatError,
+    NullYearError, DateDoesntExistError
     )
 
 
@@ -25,10 +25,12 @@ class Birthday:
         if isinstance(date, datetime.date):
             self.date_obj = date
         elif not isinstance(date, str):
-            raise IncorrectDateTypeError(type(date).__name__, name)
+            raise IncorrectParameterTypeError(
+                'date', type(date).__name__, 'birthday', name, 'string or datetime.date')
         
         if not isinstance(name, str):
-            raise IncorrectNameTypeError(type(name).__name__)
+            raise IncorrectParameterTypeError(
+                'name', type(name).__name__, 'birthday', name, 'string')
         
         date_parts = self.date.split('-')
         try:
@@ -57,8 +59,8 @@ def construct_birthdays(birthdays: List[Tuple[str, str]]) -> List[Birthday]:
     for bday in birthdays:
         try:
             bdays.append(Birthday(*bday))
-        except (IncorrectDateTypeError, IncorrectNameTypeError,
-                IncorrectDateFormatError, NullYearError, DateDoesntExistError
+        except (IncorrectParameterTypeError, IncorrectDateFormatError,
+                NullYearError, DateDoesntExistError
                 ) as err:
             err_list.append(err)
     if len(err_list) > 0:

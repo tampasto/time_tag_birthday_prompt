@@ -10,8 +10,8 @@ these objects.
 from typing import List, Tuple
 
 from .exceptions import (
-    TimeTagErrorGroup, TimeFieldErrorGroup, IncorrectTimeFormatError,
-    TimeDoesntExistError, TimeOrderError
+    TimeTagErrorGroup, TimeFieldErrorGroup, IncorrectParameterTypeError,
+    IncorrectTimeFormatError, TimeDoesntExistError, TimeOrderError
     )
 
 
@@ -23,12 +23,27 @@ class TimeTag:
         self.start_tuple: Tuple[int, int]
         self.stop_tuple: Tuple[int, int]
 
+        if not isinstance(start, str):
+            raise IncorrectParameterTypeError(
+                'start', type(start).__name__, 'time tag', text, 'string')
+        if not isinstance(stop, str):
+            raise IncorrectParameterTypeError(
+                'stop', type(stop).__name__, 'time tag', text, 'string')
+        if not isinstance(text, str):
+            raise IncorrectParameterTypeError(
+                'text', type(text).__name__, 'time tag', text, 'string')
+
         err_list = []
         for field_name in ('start', 'stop'):
             field_value = getattr(self, field_name)
-            h, m = field_value.split(':', 1)
+            sp = field_value.split(':', 1)
+            if len(sp) == 1:
+                err_list.append(
+                    IncorrectTimeFormatError(
+                        field_name, field_value, self.text))
+                continue
             try:
-                h, m = int(h), int(m)
+                h, m = int(sp[0]), int(sp[1])
             except ValueError:
                 err_list.append(
                     IncorrectTimeFormatError(
@@ -56,7 +71,7 @@ def construct_time_tags(time_tags: List[Tuple[str, str, str]]) -> List[TimeTag]:
         except TimeFieldErrorGroup as err_group:
             for err in err_group.exceptions:
                 err_list.append(err)
-        except TimeOrderError as err:
+        except (IncorrectParameterTypeError, TimeOrderError) as err:
             err_list.append(err)
     
     if len(err_list) > 0:

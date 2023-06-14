@@ -7,7 +7,7 @@ The method `__str__()` defines the output of the object.
 
 from datetime import datetime
 
-from .exceptions import IncorrectReferenceError
+from .exceptions import IncorrectParameterTypeError
 from .primary_prompt import PrimaryPrompt
 
 
@@ -24,7 +24,7 @@ class SecondaryPrompt:
     prompt
     """
     
-    def __init__(self, primary_prompt: PrimaryPrompt, prompt: str | None = '... '):
+    def __init__(self, primary_prompt: PrimaryPrompt, prompt: str = '... '):
         """Initialize a secondary prompt object.
         
         Parameters
@@ -40,13 +40,25 @@ class SecondaryPrompt:
         self._primary_prompt = primary_prompt
         
         if not isinstance(primary_prompt, PrimaryPrompt):
-            raise IncorrectReferenceError('primary_prompt', type(primary_prompt))
+            raise IncorrectParameterTypeError(
+                'primary_prompt', type(primary_prompt).__name__,
+                'secondary prompt', expected_type='PrimaryPrompt object'
+                )
+        if not isinstance(prompt, str):
+            raise IncorrectParameterTypeError(
+                'prompt', type(primary_prompt).__name__, 'secondary prompt',
+                expected_type='string'
+                )
 
     def __str__(self):
-        time_tag = self._primary_prompt._get_time_tag(datetime.now())
-        tag_end_len = len(self._primary_prompt.tag_end_prompt)
-        if time_tag is None or len(time_tag) <= len(self.prompt)-tag_end_len:
-            return self.prompt
+        return self.get_str(datetime.now())
+    
+    def get_str(self, now: datetime):
+        time_tag = self._primary_prompt.get_time_tag(now)
+        primary_len = None
+        if time_tag is None:
+            primary_len = len(self._primary_prompt.default_prompt)
         else:
-            indent = len(time_tag) + tag_end_len - 4
-            return (indent * ' ') + '... '
+            primary_len = len(time_tag + self._primary_prompt.tag_end_prompt)
+        
+        return f'{self.prompt:>{primary_len}}'

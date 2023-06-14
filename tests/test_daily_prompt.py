@@ -30,7 +30,7 @@ class TestDailyPromptInit(unittest.TestCase):
         self.assertRegex(str(daily_prompt), msg_re.replace(' ', r'\s+'))
 
 
-class TestDailyPromptStr(unittest.TestCase):
+class TestDailyPromptGetStr(unittest.TestCase):
     """Test `DailyPrompt` object `__str__()` method."""
 
     def testDaysFridayInWeek(self):

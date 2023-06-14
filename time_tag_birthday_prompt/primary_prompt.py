@@ -10,7 +10,8 @@ from typing import List
 import textwrap
 
 from .daily_prompt import DailyPrompt
-from .exceptions import TimeTagErrorGroup, IncorrectReferenceError
+from .exceptions import (
+    TimeTagErrorGroup, IncorrectParameterTypeError, LineWidthLessThanOneError)
 from .time_tag import TimeTag, construct_time_tags
 import data_time_tags
 
@@ -69,16 +70,41 @@ class PrimaryPrompt:
         self.print_daily_prompt = daily_prompt_on_init
         """If True, prepend daily prompt text to next primary prompt."""
 
-        self._time_tags: List[TimeTag] | None = None
+        self.time_tags: List[TimeTag] | None = None
         self._time_tag_errors: List[str] = []
         self._last_prompt_date = date.today()
         self._print_errors = False
         
         if not isinstance(daily_prompt, DailyPrompt) and daily_prompt is not None:
-            raise IncorrectReferenceError('daily_prompt', type(daily_prompt))
+            raise IncorrectParameterTypeError(
+                'daily_prompt', type(daily_prompt).__name__, 'primary prompt',
+                expected_type='DailyPrompt object'
+                )
+        if not isinstance(default_prompt, str):
+            raise IncorrectParameterTypeError(
+                'default_prompt', type(default_prompt).__name__, 'primary prompt',
+                expected_type='string'
+                )
+        if not isinstance(tag_end_prompt, str):
+            raise IncorrectParameterTypeError(
+                'tag_end_prompt', type(tag_end_prompt).__name__, 'primary prompt',
+                expected_type='string'
+                )
+        if not isinstance(line_width, int):
+            raise IncorrectParameterTypeError(
+                'line_width', type(line_width).__name__, 'primary prompt',
+                expected_type='integer'
+                )
+        elif line_width < 1:
+            raise LineWidthLessThanOneError(line_width)
+        if not isinstance(daily_prompt_on_init, bool):
+            raise IncorrectParameterTypeError(
+                'daily_prompt_on_init', type(daily_prompt_on_init).__name__,
+                'primary prompt', expected_type='boolean value'
+                )
 
         try:
-            self._time_tags = construct_time_tags(data_time_tags.TIME_TAGS)
+            self.time_tags = construct_time_tags(data_time_tags.TIME_TAGS)
         except TimeTagErrorGroup as err_group:
             self._time_tag_errors = [
                 textwrap.fill(str(exc)) for exc in err_group.exceptions]
@@ -90,11 +116,14 @@ class PrimaryPrompt:
         if self._time_tag_errors:
             print('\n'.join(self._time_tag_errors))
         else:
-            for tag in self._time_tags:
+            for tag in self.time_tags:
                 print(f'{tag.start} to {tag.stop}   {tag.text}{self.tag_end_prompt}')
         print()
     
     def __str__(self) -> str:
+        return self.get_str(datetime.now())
+    
+    def get_str(self, now: datetime):
         prompt = ''
         if self._print_errors:
             prompt += '\n' + '\n'.join(self._time_tag_errors) + '\n'
@@ -109,7 +138,7 @@ class PrimaryPrompt:
             self.print_daily_prompt = False
         self._last_prompt_date = date.today()
 
-        time_tag = self._get_time_tag(datetime.now())
+        time_tag = self.get_time_tag(now)
 
         if time_tag:
             prompt += time_tag + self.tag_end_prompt
@@ -117,14 +146,15 @@ class PrimaryPrompt:
             prompt += self.default_prompt
         return prompt
     
-    def _get_time_tag(self, now: datetime) -> str | None:
-        for tag in self._time_tags:
+    def get_time_tag(self, now: datetime) -> str | None:
+        txt = None
+        for tag in self.time_tags:
             time_start = datetime(
                 now.year, now.month, now.day, *tag.start_tuple)
-            day_adjust_stop = 1 if tag.stop == (0, 0) else 0
+            day_adjust_stop = 1 if tag.stop_tuple == (0, 0) else 0
             time_stop = datetime(
                 now.year, now.month, now.day+day_adjust_stop, *tag.stop_tuple)
 
             if time_start <= now < time_stop:
-                return tag.text
-        return None
+                txt = tag.text
+        return txt
