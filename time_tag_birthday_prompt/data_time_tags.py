@@ -26,8 +26,9 @@ from typing import List, Tuple
 
 
 TIME_TAGS: List[Tuple[str, str, str]] = [
-    ('00:00', '01:00', 'night owl'),
-    ('06:00', '08:00', 'coffee time'),
+    ('00:00', '02:00', 'fancy eye bags?'),
+    ('02:00', '06:00', 'zombie-in-waiting'),
+    ('06:00', '08:30', 'coffee time'),
     ('10:50', '11:50', 'lunch'),
-    ('21:00', '00:00', 'getting late'),
+    ('22:00', '00:00', 'getting late'),
     ]

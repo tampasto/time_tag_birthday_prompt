@@ -13,10 +13,11 @@ from .primary_prompt import PrimaryPrompt
 
 class SecondaryPrompt:
     """
-    Class for following REPL primary prompt indentation.
+    Class for following primary prompt indentation in interactive mode.
 
     The object is expected to be assinged to `sys.ps2` to change the
-    prompt in REPL. This can be done in Python startup script.
+    prompt in interactive mode. This can be done in Python startup
+    script.
     
     Attributes
     ----------

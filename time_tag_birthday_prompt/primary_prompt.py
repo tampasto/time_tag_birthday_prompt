@@ -18,12 +18,12 @@ import data_time_tags
 
 class PrimaryPrompt:
     """
-    Class for adding time tags to REPL primary prompt.
+    Class for adding time tags to interactive mode primary prompt.
 
     The object is expected to be assinged to `sys.ps1` to change the
-    prompt in REPL. This can be done in Python startup script. It will
-    also show birthday reminders if day has changed (00:00) between two
-    REPL statement entries.
+    prompt in interactive mode. This can be done in Python startup
+    script. It will also show birthday reminders if day has changed
+    (00:00) between two statement entries.
     
     Attributes
     ----------

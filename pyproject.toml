@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+
+[project]
+name = "time_tag_birthday_prompt"
+dynamic = ["version"]
+description = """\
+    Add time tags to interactive mode prompt and birthday reminders to Python \
+    startup.\
+    """
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+keywords = [
+    "interactive mode", "repl", "python", "command line", "reminder",
+    "birthday", "notification", "time tag", "custom prompt"
+    ]
+authors = [
+  {name = "tampasto"}
+]
+
+[project.urls]
+repository = "https://github.com/tampasto/time_tag_birthday_prompt"
+
+[tool.setuptools.dynamic]
+version = {attr = "package.__version__"}

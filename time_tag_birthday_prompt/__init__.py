@@ -1,8 +1,9 @@
 """
-Add time tags to REPL prompt and birthday reminders to Python startup.
+Add time tags to interactive mode prompt and birthday reminders to
+Python startup.
 
-The package introduces three classes to be used in REPL. They are
-intended to be used in a Python startup file.
+The package introduces three classes to be used while configuring the
+prompt. They are intended to be used in a Python startup file.
 
 The list of birthdays for daily prompt can be edited in file
 ``data_birthdays.py`` and time tags for primary prompt in
@@ -26,6 +27,8 @@ initiating `DailyPrompt` will by default print its string form. See
     sys.ps2 = secondary_prompt
 
 """
+
+__version__ = '0.9.0'
 
 from .daily_prompt import DailyPrompt
 from .primary_prompt import PrimaryPrompt

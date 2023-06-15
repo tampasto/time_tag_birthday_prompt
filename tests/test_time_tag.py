@@ -104,7 +104,7 @@ class TestTimeTagInit(unittest.TestCase):
 
 
 class TestConstructTimeTags(unittest.TestCase):
-    """Test `construct_birthdays()` function."""
+    """Test `construct_time_tags()` function."""
 
     def testTimeTagErrorGroupOneException(self):
         with self.assertRaises(TimeTagErrorGroup) as cm:

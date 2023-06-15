@@ -17,7 +17,8 @@ import data_birthdays
 
 class DailyPrompt:
     """
-    Class for printing weekdays and birthday reminders on REPL startup.
+    Class for printing weekdays and birthday reminders on interactive
+    mode startup.
     
     Attributes
     ----------
