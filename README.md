@@ -1,4 +1,3 @@
-========================
 time_tag_birthday_prompt
 ========================
 Add time tags to interactive mode prompt and birthday reminders to
@@ -11,18 +10,18 @@ birthdays. No more waking up to a grumpy face and silent treatment when
 you were 'simply' supposed to buy a box of chocolates the day before. In
 addition, the library also enables setting up time-sensitive messages to
 the prompt text in Python interactive mode (REPL). For example you may
-set your prompt to show ``"fancy eye bags?>"`` from 00:00 to 02:00 and
-``"zombie-in-waiting>"`` from 02:00 to 06:00.
+set your prompt to show ``fancy eye bags?>`` from 00:00 to 02:00 and
+``zombie-in-waiting>`` from 02:00 to 06:00.
 
 As we are only human, the library also abstracts away the Gregorian
-notation of birthdays and tells the birthday will be ``"on Thursday"``
-if it is within 6 days and ``"on Thursday next week"`` if it is in 7
+notation of birthdays and tells the birthday will be ``on Thursday``
+if it is within 6 days and ``on Thursday next week`` if it is in 7
 days or more but within next calendar week. More distant birthdays will
 be represented as their proximity in days. By default, birthdays within
 30 days will be shown.
 
 Example
-=======
+-------
 When the library is correctly set up in the Python startup script,
 opening interactive mode with command `py` (Windows) or `python`
 (Linux/MacOS) will produce the following output. Note that the example
@@ -30,6 +29,8 @@ resembles the output with switch `-q` leaving out Python version and
 copyright messages.
 
 ```
+C:\Users\username>py -q
+
 ----------------------------------------------------------------------
 Today is Thursday, 2023-06-15
 Birthday of Dan Brown (59) on Thursday next week, Martti Ahtisaari
