@@ -3,63 +3,51 @@ import unittest
 
 from time_tag_birthday_prompt.primary_prompt import PrimaryPrompt
 
-from time_tag_birthday_prompt.daily_prompt import DailyPrompt
 from time_tag_birthday_prompt.exceptions import (
-    TimeTagErrorGroup, IncorrectParameterTypeError, LineWidthLessThanOneError)
-from time_tag_birthday_prompt.time_tag import TimeTag, construct_time_tags
+    BirthdayNotifyDaysLessThanZeroError, IncorrectParameterTypeError, LineWidthLessThanTenError)
+from time_tag_birthday_prompt.time_tag import TimeTag
 
 TDAY = 2023, 6, 10
 
 
 class TestPrimaryPromptInit(unittest.TestCase):
-    """Test `DailyPrompt` object `__init__()` method."""
+    """Test `PrimaryPrompt` object `__init__()` method."""
 
-    @unittest.expectedFailure
-    def testCorrectParameterTypeDailyPromptObject(self):
+    def testIncorrectParameterTypeErrorBirthdayNotifyDays(self):
         with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=DailyPrompt())
-
-    @unittest.expectedFailure
-    def testCorrectParameterTypeDailyPromptNone(self):
-        with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=None)
-
-    def testIncorrectParameterTypeErrorDailyPromptStr(self):
-        with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt='daily_prompt')
+            PrimaryPrompt(birthday_notify_days=(5, 6))
+    
+    def testBirthdayNotifyDaysLessThanZeroErrorMinusOne(self):
+        with self.assertRaises(BirthdayNotifyDaysLessThanZeroError):
+            PrimaryPrompt(birthday_notify_days=-1)
 
     def testIncorrectParameterTypeErrorDefaultPrompt(self):
         with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), default_prompt=-1)
+            PrimaryPrompt(default_prompt=-1)
 
     def testIncorrectParameterTypeErrorTagEndPrompt(self):
         with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), tag_end_prompt=-1)
+            PrimaryPrompt(tag_end_prompt=-1)
 
     def testIncorrectParameterTypeErrorLineWidth(self):
         with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), line_width=None)
+            PrimaryPrompt(line_width=None)
 
     def testIncorrectParameterTypeErrorDailyPromptOnInit(self):
         with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), daily_prompt_on_init='False')
+            PrimaryPrompt(daily_prompt_on_init='False')
 
-    def testLineWidthLessThanOneErrorZero(self):
-        with self.assertRaises(LineWidthLessThanOneError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), line_width=0)
+    def testLineWidthLessThanOneErrorNine(self):
+        with self.assertRaises(LineWidthLessThanTenError):
+            PrimaryPrompt(line_width=9)
 
     def testLineWidthLessThanOneErrorMinusOne(self):
-        with self.assertRaises(LineWidthLessThanOneError):
-            PrimaryPrompt(daily_prompt=DailyPrompt(), line_width=-1)
+        with self.assertRaises(LineWidthLessThanTenError):
+            PrimaryPrompt(line_width=-1)
 
 
 class TestPrimaryPromptGetStr(unittest.TestCase):
     """Test `PrimaryPrompt` object `__str__()` method."""
-
-    def testDailyPromptPrints(self):
-        primary_prompt_a = PrimaryPrompt(daily_prompt=DailyPrompt())
-        primary_prompt_b = PrimaryPrompt(daily_prompt=None)
-        self.assertNotEqual(len(str(primary_prompt_a)), len(str(primary_prompt_b)))
 
     def testTagJustBefore(self):
         primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')

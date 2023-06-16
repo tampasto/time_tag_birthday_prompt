@@ -1,19 +1,27 @@
 """
 Define `PrimaryPrompt` class.
 
-The method `__str__()` defines the output of the object.
+The method `get_str()` defines the output of the object.
 
 """
 
 from datetime import datetime, date
+from pathlib import Path
 from typing import List
+import os.path
+import shutil
 import textwrap
 
 from .daily_prompt import DailyPrompt
+from .data_loader import DataLoader
 from .exceptions import (
-    TimeTagErrorGroup, IncorrectParameterTypeError, LineWidthLessThanOneError)
-from .time_tag import TimeTag, construct_time_tags
-import data_time_tags
+    ConstructTimeTagsGroup, IncorrectParameterTypeError,
+    BirthdayNotifyDaysLessThanZeroError, LineWidthLessThanTenError,
+    CorruptJSONFileGroup
+    )
+from .time_tag import TimeTag
+
+sample_json_path = str(Path(__file__).parent / 'sample_time_tag_birthday.json')
 
 
 class PrimaryPrompt:
@@ -31,34 +39,54 @@ class PrimaryPrompt:
     default_prompt
     tag_end_prompt
     line_width
-    daily_prompt_on_init
+
+    Methods
+    -------
+    print_birthdays
+        Print the list of birthdays.
+    print_time_tags
+        Print the list of time tags.
+    time_machine
+        Print birthday notifications from another date.
     """
     
     def __init__(
             self,
-            daily_prompt: DailyPrompt | None = None,
+            json_path: str = '~/time_tag_birthday.json',
+            birthday_notify_days: int = 30,
             default_prompt: str = '>>> ',
             tag_end_prompt: str = '> ',
-            line_width: int = 70,
-            daily_prompt_on_init: bool = True
+            line_width: int = 70
             ) -> None:
-        """Initialize a primary prompt object.
+        """
+        Initialize a primary prompt object.
         
         Parameters
         ----------
-        daily_prompt: DailyPrompt or None, default None
-            Reference to a daily prompt object if birthday reminders
-            should be printed when date changes.
+        json_path : str, default '~/time_tag_birthday.json'
+            Path to the data file for birthdays and time tags. Strings
+            '~' and '~user' are replaced by the user's home directory.
+        birthday_notify_days : int, default 30
+            How many days before the birthday a notification is shown.
         default_prompt: str, default '>>> '
             Text to be shown in prompt when no time tag is active.
         tag_end_prompt: str, default '> '
             Text to be written in prompt after the time tag.
         line_width : int, default 70
             How many characters fit on one line.
-        daily_prompt_on_init : bool, default True
-            If True, print the daily prompt on initialization.
+        
+        Raises
+        ------
+        IncorrectParameterTypeError
+            Any of the parameter values have unexpected type.
+        BirthdayNotifyDaysLessThanZeroError
+            Raised when parameter `birthday_notify_days` is less than 0.
+        LineWidthLessThanTenError
+            Raised when parameter `line_width` is less than ten.
+        OSError
+            May be raised if JSON file could not be read or created.
         """
-        self.daily_prompt = daily_prompt
+        self.daily_prompt: DailyPrompt
         """Reference to a daily prompt object if birthday reminders
         should be printed when date changes."""
         self.default_prompt = default_prompt
@@ -67,57 +95,82 @@ class PrimaryPrompt:
         """Text to be written in prompt after the time tag."""
         self.line_width = line_width
         """How many characters fit on one line."""
-        self.print_daily_prompt = daily_prompt_on_init
-        """If True, prepend daily prompt text to next primary prompt."""
 
         self.time_tags: List[TimeTag] | None = None
-        self._time_tag_errors: List[str] = []
+        self._messages: List[str] = []
         self._last_prompt_date = date.today()
-        self._print_errors = False
+        self._print_init = True
         
-        if not isinstance(daily_prompt, DailyPrompt) and daily_prompt is not None:
+        data_loader: DataLoader | None = None
+        if not isinstance(json_path, str):
             raise IncorrectParameterTypeError(
-                'daily_prompt', type(daily_prompt).__name__, 'primary prompt',
-                expected_type='DailyPrompt object'
+                'json_path', type(json_path).__name__, 'primary prompt',
+                expected_type='string'
                 )
+        json_path = os.path.abspath(os.path.expanduser(json_path))
+        try:
+            data_loader = self._construct_data_loader(json_path)
+        except FileNotFoundError:
+            shutil.copy(sample_json_path, json_path)
+            self._messages.append(
+                f'Created a JSON file with sample data and using it. Creation path: {json_path}'
+                )
+            data_loader = self._construct_data_loader(json_path)
+        
+        self.daily_prompt = DailyPrompt(
+            data_loader, birthday_notify_days, line_width)
+        
+        if not isinstance(birthday_notify_days, int):
+            raise IncorrectParameterTypeError(
+                'birthday_notify_days', type(birthday_notify_days).__name__,
+                'primary prompt', expected_type='integer'
+                )
+        elif birthday_notify_days < 0:
+            raise BirthdayNotifyDaysLessThanZeroError(birthday_notify_days)
+
         if not isinstance(default_prompt, str):
             raise IncorrectParameterTypeError(
                 'default_prompt', type(default_prompt).__name__, 'primary prompt',
                 expected_type='string'
                 )
+        
         if not isinstance(tag_end_prompt, str):
             raise IncorrectParameterTypeError(
                 'tag_end_prompt', type(tag_end_prompt).__name__, 'primary prompt',
                 expected_type='string'
                 )
+        
         if not isinstance(line_width, int):
             raise IncorrectParameterTypeError(
                 'line_width', type(line_width).__name__, 'primary prompt',
                 expected_type='integer'
                 )
-        elif line_width < 1:
-            raise LineWidthLessThanOneError(line_width)
-        if not isinstance(daily_prompt_on_init, bool):
-            raise IncorrectParameterTypeError(
-                'daily_prompt_on_init', type(daily_prompt_on_init).__name__,
-                'primary prompt', expected_type='boolean value'
-                )
+        elif line_width < 10:
+            raise LineWidthLessThanTenError(line_width)
 
-        try:
-            self.time_tags = construct_time_tags(data_time_tags.TIME_TAGS)
-        except TimeTagErrorGroup as err_group:
-            self._time_tag_errors = [
-                textwrap.fill(str(exc)) for exc in err_group.exceptions]
-            self._print_errors = True
+        if data_loader:
+            try:
+                self.time_tags = data_loader.construct_time_tags()
+            except ConstructTimeTagsGroup as err_group:
+                self._messages.extend([
+                    str(exc) for exc in err_group.exceptions])
+        
+        # Method aliases from DailyPrompt
+        self.print_birthdays = self.daily_prompt.print_birthdays
+        self.time_machine = self.daily_prompt.time_machine
     
-    def print_tags(self) -> None:
+    def print_time_tags(self) -> None:
         """Print the list of time tags."""
         print()
-        if self._time_tag_errors:
-            print('\n'.join(self._time_tag_errors))
-        else:
+        if self._print_init or not self.time_tags:
+            if self._messages:
+                print('\n' + self._format_messages() + '\n')
+            else:
+                print('\nNo messages.\n')
+        self._print_init = False
+        if self.time_tags:
             for tag in self.time_tags:
-                print(f'{tag.start} to {tag.stop}   {tag.text}{self.tag_end_prompt}')
+                print(f'{tag.start} to {tag.stop}  {tag.text}{self.tag_end_prompt}')
         print()
     
     def __str__(self) -> str:
@@ -125,18 +178,16 @@ class PrimaryPrompt:
     
     def get_str(self, now: datetime):
         prompt = ''
-        if self._print_errors:
-            prompt += '\n' + '\n'.join(self._time_tag_errors) + '\n'
-            self._print_errors = False
-        if self._time_tag_errors:
-            return prompt + self.default_prompt
+        if self._print_init and self._messages:
+            prompt += '\n' + self._format_messages() + '\n'
 
         if self.daily_prompt and (
-                self.print_daily_prompt
+                self._print_init
                 or self._last_prompt_date != date.today()):
-            prompt += self.daily_prompt.get_str(self.line_width) + '\n'
-            self.print_daily_prompt = False
+            prompt += self.daily_prompt.get_str() + '\n'
         self._last_prompt_date = date.today()
+
+        self._print_init = False
 
         time_tag = self.get_time_tag(now)
 
@@ -146,15 +197,39 @@ class PrimaryPrompt:
             prompt += self.default_prompt
         return prompt
     
+    def _format_messages(self) -> str:
+        msg_list = []
+        for msg in self._messages:
+            first_line = textwrap.wrap(msg, self.line_width)[0]
+            msg = msg[len(first_line):].lstrip()
+            if msg:
+                msg = '\n    ' + '\n    '.join(textwrap.wrap(msg, self.line_width-4))
+            msg_list.append(first_line + msg)
+        return '\n'.join(msg_list)
+    
     def get_time_tag(self, now: datetime) -> str | None:
         txt = None
-        for tag in self.time_tags:
-            time_start = datetime(
-                now.year, now.month, now.day, *tag.start_tuple)
-            day_adjust_stop = 1 if tag.stop_tuple == (0, 0) else 0
-            time_stop = datetime(
-                now.year, now.month, now.day+day_adjust_stop, *tag.stop_tuple)
-
-            if time_start <= now < time_stop:
-                txt = tag.text
+        if self.time_tags:
+            for tag in self.time_tags:
+                time_start = datetime(
+                    now.year, now.month, now.day, *tag.start_tuple)
+                time_stop = datetime(
+                    now.year, now.month, now.day, *tag.stop_tuple)
+                
+                if time_start < time_stop:
+                    if time_start <= now < time_stop:
+                        txt = tag.text
+                else:
+                    if now >= time_start or now < time_stop:
+                        txt = tag.text
         return txt
+    
+    def _construct_data_loader(self, json_path: str) -> DataLoader | None:
+        data_loader = None
+        with open(json_path, 'r', encoding='utf-8') as fp:
+            try:
+                data_loader = DataLoader(fp, json_path)
+            except CorruptJSONFileGroup as err_group:
+                self._messages.extend(err_group.get_messages())
+                return None
+        return data_loader

@@ -1,7 +1,5 @@
 """
-Define `DailyPrompt` class.
-
-The method `__str__()` defines the output of the object.
+Define `DailyPrompt` class for birthday notifications.
 
 """
 
@@ -10,9 +8,9 @@ from typing import List
 import collections
 import textwrap
 
-from .birthday import Birthday, construct_birthdays
-from .exceptions import BirthdayErrorGroup
-import data_birthdays
+from .birthday import Birthday
+from .data_loader import DataLoader
+from .exceptions import ConstructBirthdaysGroup
 
 
 class DailyPrompt:
@@ -23,8 +21,13 @@ class DailyPrompt:
     Attributes
     ----------
     birthday_notify_days
+        How many days before the birthday a notification is shown. Copy
+        of PrimaryPrompt value.
     line_width
+        How many characters fit on one line. Copy of PrimaryPrompt
+        value.
     birthdays
+        List of  `Birthday` objects.
     """
     _BDTuple = collections.namedtuple('_BDTuple', ['date', 'name'])
     _Proximity = collections.namedtuple('_Proximity', [
@@ -35,106 +38,116 @@ class DailyPrompt:
         ]
 
     def __init__(
-            self,
-            birthday_notify_days: int = 30,
-            line_width: int = 70
+            self, data_loader: DataLoader | None, birthday_notify_days: int,
+            line_width: int
             ) -> None:
         """
-        Initialize a daily prompt object.
+        Initialize a daily prompt object. Invoked by PrimaryPrompt.
         
         Parameters
         ----------
-        birthday_notify_days : int, default 30
+        data_loader : DataLoader or None
+            An instance of DataLoader object.
+        birthday_notify_days : int
             How many days before the birthday a notification is shown.
-        line_width : int, default 70
-            How many characters fit on one line. Value in PrimaryPrompt
-            object overrides this setting.
+        line_width : int
+            How many characters fit on one line.
         """
-        self.birthday_notify_days: int = birthday_notify_days
+        self.birthday_notify_days = birthday_notify_days
         """How many days before the birthday a notification is shown."""
         self.line_width = line_width
-        """How many characters fit on one line. Value in PrimaryPrompt
-        object overrides this setting."""
+        """How many characters fit on one line."""
         self.birthdays: List[Birthday] | None = None
-        """List of `Birthday` objects"""
+        """List of `Birthday` objects."""
 
-        self._birthday_errors: List[str] = []
+        self._messages: List[str] = []
+        self._print_init = True
+        self._birthdays_disabled = False
 
-        if not isinstance(birthday_notify_days, int):
-            self._birthday_errors.append(
-                f"Parameter 'birthday_notify_days' is not of type int.")
-        elif birthday_notify_days < 0:
-            self._birthday_errors.append(
-                f'Parameter birthday_notify_days={birthday_notify_days} is '
-                'out of range. Expected a non-negative integer.'
-                )
-        if not isinstance(line_width, int):
-            self._birthday_errors.append(
-                f"Parameter 'line_width' is not of type int.")
-        elif line_width < 1:
-            self._birthday_errors.append(
-                f'Parameter line_width={line_width} is out of range. Expected '
-                'greater than 0.'
-                )
-
-        try:
-            self.birthdays = construct_birthdays(data_birthdays.BIRTHDAYS)
-        except BirthdayErrorGroup as err_group:
-            self._birthday_errors = [
-                textwrap.fill(str(exc)) for exc in err_group.exceptions]
-        
+        if data_loader:
+            self._birthdays_disabled = data_loader.birthdays_disabled
+            try:
+                self.birthdays = data_loader.construct_birthdays()
+            except ConstructBirthdaysGroup as err_group:
+                self._messages.extend([
+                    str(err) for err in err_group.exceptions])
     
     def time_machine(self, date_string: str) -> None:
         """
-        Print the daily prompt from another time.
-        
-        Please be aware of not violating causality.
+        Print birthday notifications from another date.
         
         Parameters
         ----------
         date_string : str
-            Your destination time in format YYYY-MM-DD.
+            Destination time in format YYYY-MM-DD.
         """
         dt = datetime.strptime(date_string, '%Y-%m-%d')
         d = date(dt.year, dt.month, dt.day)
         print(self.get_str(today=d))
+        
+    def print_birthdays(self) -> None:
+        """Print the list of birthdays."""
+        print()
+        if self._print_init or not self.birthdays:
+            if self._messages:
+                print('\n' + self._format_messages() + '\n')
+            else:
+                print('No birthdays or messages.')
+        self._print_init = False
+        if self.birthdays:
+            for bday in self.birthdays:
+                date_str = None
+                if isinstance(bday.date, date):
+                    date_str = bday.date.strftime('%Y-%m-%d')
+                else:
+                    date_str = bday.date
+                print(f'{date_str}  {bday.name}')
+        print()
     
     def __str__(self) -> str:
         return self.get_str()
     
     def get_str(
-            self, line_width: int | None = None, today: date | None = None
+            self, today: date | None = None
             ) -> str:
-        if line_width is None:
-            if self._birthday_errors:
-                line_width = 70
-            else:
-                line_width = self.line_width
+        if self._birthdays_disabled:
+            return ''
         if today is None:
             today = date.today()
         ret_str = ''
-        if self._birthday_errors:
-            ret_str += '\n' + '\n'.join(self._birthday_errors) + '\n'
+        if self._print_init and self._messages:
+            ret_str += '\n' + self._format_messages() + '\n'
+        self._print_init = False
         ret_str += (
-            '\n' + line_width * '-' + '\n'
-            + self._format_date(line_width, today) + '\n'
+            '\n' + self.line_width * '-' + '\n'
+            + self._format_date(today) + '\n'
             )
-        if not self._birthday_errors:
-            ret_str += self._format_birthday(line_width, today) + '\n'
-        ret_str += line_width * '-'
+        if self.birthdays:
+            ret_str += self._format_birthdays(today) + '\n'
+        ret_str += self.line_width * '-'
         return ret_str
     
-    def _format_date(self, line_width: int, today: date) -> str:
+    def _format_messages(self) -> str:
+        msg_list = []
+        for msg in self._messages:
+            first_line = textwrap.wrap(msg, self.line_width)[0]
+            msg = msg[len(first_line):].lstrip()
+            if msg:
+                msg = '\n    ' + '\n    '.join(textwrap.wrap(msg, self.line_width-4))
+            msg_list.append(first_line + msg)
+        return '\n'.join(msg_list)
+    
+    def _format_date(self, today: date) -> str:
         d_str = datetime(today.year, today.month, today.day).strftime(
             '%A, %Y-%m-%d')
-        return textwrap.fill(f'Today is {d_str}\n', line_width)
+        return textwrap.fill(f'Today is {d_str}\n', self.line_width)
     
-    def _format_birthday(self, line_width: int, today: date) -> str:
+    def _format_birthdays(self, today: date) -> str:
         prox_list = self._get_proximity_list(today)
         prox_list.sort()
         bday_string = self._format_proximity_list(prox_list)
         if bday_string is not None:
-            return textwrap.fill(bday_string, line_width)
+            return textwrap.fill(bday_string, self.line_width)
         else:
             return ''
     
@@ -177,7 +190,12 @@ class DailyPrompt:
                 bday_str += ' and '
             elif i != 0:
                 bday_str += ', '
-            bday_str += prox.name
+
+            if prox.name.strip():
+                bday_str += prox.name
+            else:
+                bday_str += '<empty>'
+
             is_not_first = True
             if prox.bd_age:
                 bday_str += f' ({prox.bd_age})'

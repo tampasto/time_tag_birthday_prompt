@@ -1,10 +1,10 @@
 from datetime import date
 import unittest
 
-from time_tag_birthday_prompt.birthday import Birthday, construct_birthdays
+from time_tag_birthday_prompt.birthday import Birthday
 
 from time_tag_birthday_prompt.exceptions import (
-    BirthdayErrorGroup, IncorrectParameterTypeError, IncorrectDateFormatError,
+    ConstructBirthdaysGroup, IncorrectParameterTypeError, IncorrectDateFormatError,
     NullYearError, DateDoesntExistError
     )
 
@@ -61,39 +61,6 @@ class TestBirthdayInit(unittest.TestCase):
     def testDateDoesntExistErrorDayZero(self):
         with self.assertRaises(DateDoesntExistError):
             Birthday(f'2023-02-00', 'name')
-
-
-class TestConstructBirthdays(unittest.TestCase):
-    """Test `construct_birthdays()` function."""
-
-    def testBirthdayErrorGroupOneException(self):
-        with self.assertRaises(BirthdayErrorGroup) as cm:
-            construct_birthdays(
-                [('191x-01-01', 'name')])
-        self.assertEqual(len(cm.exception.exceptions), 1)
-
-    def testBirthdayErrorGroupStillOneException(self):
-        with self.assertRaises(BirthdayErrorGroup) as cm:
-            construct_birthdays(
-                [('191x-01-01', 1)])
-        self.assertEqual(len(cm.exception.exceptions), 1)
-
-    def testBirthdayErrorGroupTwoExceptions(self):
-        with self.assertRaises(BirthdayErrorGroup) as cm:
-            construct_birthdays([
-                ('191x-01-01', 1),
-                (False, 'name')
-                ])
-        self.assertEqual(len(cm.exception.exceptions), 2)
-
-    def testBirthdayErrorGroupThreeExceptions(self):
-        with self.assertRaises(BirthdayErrorGroup) as cm:
-            construct_birthdays([
-                ('191x-01-01', 1),
-                (date(2023, 6, 1), []),
-                ('2023-01-xx', 'name')
-                ])
-        self.assertEqual(len(cm.exception.exceptions), 3)
 
 
 if __name__ == '__main__':

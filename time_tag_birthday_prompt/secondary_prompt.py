@@ -1,7 +1,7 @@
 """
 Define `SecondaryPrompt` class.
 
-The method `__str__()` defines the output of the object.
+The method `get_str()` defines the output of the object.
 
 """
 
@@ -21,19 +21,22 @@ class SecondaryPrompt:
     
     Attributes
     ----------
-    daily_prompt
     prompt
     """
     
     def __init__(self, primary_prompt: PrimaryPrompt, prompt: str = '... '):
-        """Initialize a secondary prompt object.
+        """
+        Initialize a secondary prompt object.
         
         Parameters
         ----------
-        primary_prompt : PrimaryPrompt
-            Reference to a primary prompt object.
         prompt : str or None, default '... '
             Text in secondary prompt.
+        
+        Raises
+        ------
+        IncorrectParameterTypeError
+            Any of the parameter values have unexpected type.
         """
         self.prompt = prompt
         """Text in secondary prompt."""

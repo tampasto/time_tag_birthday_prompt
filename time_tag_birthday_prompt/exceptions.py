@@ -1,14 +1,22 @@
 """
 Define exceptions of the package.
 
-None of these exceptions are expected to be propagated out of the
-classes as sys.ps1 and sys.ps2 do not print raised exceptions. If the
-`__str__()` method of a prompt class raises an exception, the prompt
-will be empty.
+Exceptions are raised out of classes only during class initialization
+and only related to `__init__` parameter values. Exceptions related to
+corrupt JSON data file will not be propagated out of classes but
+displayed in string form in the console.
+
+No expections are expected to be raised after initialization. Even if
+exceptions were raised when `sys.ps1` or `sys.ps2` call `str()` on their
+values, the stack trace texts would be suspended and the prompt would be
+an empty string.
 
 """
 
-from textwrap import fill
+from typing import Tuple, List
+
+
+# Exceptions raised on class initialization
 
 
 class IncorrectParameterTypeError(Exception):
@@ -35,7 +43,55 @@ class IncorrectParameterTypeError(Exception):
         return text
 
 
-class BirthdayErrorGroup(ExceptionGroup):
+class LineWidthLessThanTenError(Exception):
+    def __init__(self, line_width: int):
+        self.line_width = line_width
+
+    def __str__(self):
+        return (
+            f"Parameter 'line_width' value {self.line_width} is less than ten."
+            )
+
+
+class BirthdayNotifyDaysLessThanZeroError(Exception):
+    def __init__(self, birthday_notify_days: int):
+        self.birthday_notify_days = birthday_notify_days
+
+    def __str__(self):
+        return (
+            "Parameter 'birthday_notify_days' value "
+            f'{self.birthday_notify_days} is less than zero.'
+            )
+
+
+# Internally handled exceptions: will be shown in prompt as string.
+
+
+class CorruptJSONFileGroup(ExceptionGroup):
+    def __init__(self, path: str, exc_tuple: Tuple[Exception]) -> None:
+        super().__init__('CorruptJSONFileGroup', exc_tuple)
+        self.path = path
+    
+    def get_messages(self) -> List[str]:
+        msg_list = [f'Errors in JSON data file.', f'Path: {self.path}']
+        for err in self.exceptions:
+            msg_list.append(str(err))
+        return msg_list
+
+
+class CorruptJSONFileError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+
+    def __str__(self):
+        return f'{self.msg}'
+
+
+class ConstructBirthdaysGroup(ExceptionGroup):
+    pass
+
+
+class BirthdayInitGroup(ExceptionGroup):
     pass
 
 
@@ -46,7 +102,7 @@ class IncorrectDateFormatError(Exception):
     
     def __str__(self):
         return (
-            f"Incorrect birthday '{self.date}' for '{self.name}'. "
+            f"Incorrect birthday format '{self.date}' for '{self.name}'. "
             f"Expected YYYY-MM-DD or MM-DD."
             )
 
@@ -75,11 +131,11 @@ class DateDoesntExistError(Exception):
             )
 
 
-class TimeTagErrorGroup(ExceptionGroup):
+class ConstructTimeTagsGroup(ExceptionGroup):
     pass
 
 
-class TimeFieldErrorGroup(ExceptionGroup):
+class TimeTagInitGroup(ExceptionGroup):
     pass
 
 
@@ -91,7 +147,7 @@ class IncorrectTimeFormatError(Exception):
     
     def __str__(self):
         return (
-            f"Incorrect {self.field_name} time value '{self.time_value}' for "
+            f"Incorrect {self.field_name} time format '{self.time_value}' for "
             f"tag '{self.tag_text}'. Expected HH:MM."
             )
 
@@ -106,27 +162,4 @@ class TimeDoesntExistError(Exception):
         return (
             f"Incorrect numeric values in {self.field_name} time "
             f"'{self.time_value}' for '{self.tag_text}'."
-            )
-
-
-class TimeOrderError(Exception):
-    def __init__(self, value_start: str, value_stop: str, tag_text: str):
-        self.value_start = value_start
-        self.value_stop = value_stop
-        self.tag_text = tag_text
-    
-    def __str__(self):
-        return (
-            f"Start time '{self.value_start}' is after stop time "
-            f"'{self.value_stop}' for '{self.tag_text}'."
-            )
-
-
-class LineWidthLessThanOneError(Exception):
-    def __init__(self, line_width: int):
-        self.line_width = line_width
-
-    def __str__(self):
-        return (
-            f"Parameter 'line_width' value {self.line_width} is less than one."
             )

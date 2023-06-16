@@ -1,33 +1,18 @@
 from datetime import date
 import unittest
 
+from time_tag_birthday_prompt.primary_prompt import PrimaryPrompt
 from time_tag_birthday_prompt.daily_prompt import DailyPrompt
 
 from time_tag_birthday_prompt.birthday import Birthday
+from time_tag_birthday_prompt.exceptions import (
+    IncorrectParameterTypeError, BirthdayNotifyDaysLessThanZeroError,
+    LineWidthLessThanTenError
+    )
 
 
 class TestDailyPromptInit(unittest.TestCase):
     """Test `DailyPrompt` object `__init__()` method."""
-
-    def testDaysWrongType(self):
-        daily_prompt = DailyPrompt(birthday_notify_days=(5, 6))
-        msg_re = r"Parameter 'birthday_notify_days' is not of type int."
-        self.assertRegex(str(daily_prompt), msg_re.replace(' ', r'\s+'))
-    
-    def testDaysOutOfRangeMinusOne(self):
-        daily_prompt = DailyPrompt(birthday_notify_days=-1)
-        msg_re = r'Parameter birthday_notify_days=[0-9\-]+ is out of range.'
-        self.assertRegex(str(daily_prompt), msg_re.replace(' ', r'\s+'))
-
-    def testLineWidthWrongType(self):
-        daily_prompt = DailyPrompt(line_width=(5, 6))
-        msg_re = r"Parameter 'line_width' is not of type int."
-        self.assertRegex(str(daily_prompt), msg_re.replace(' ', r'\s+'))
-    
-    def testLineWidthOutOfRangeZero(self):
-        daily_prompt = DailyPrompt(line_width=0)
-        msg_re = r'Parameter line_width=[0-9\-]+ is out of range.'
-        self.assertRegex(str(daily_prompt), msg_re.replace(' ', r'\s+'))
 
 
 class TestDailyPromptGetStr(unittest.TestCase):

@@ -1,68 +1,67 @@
 """
-Define `Birthday` class and a function `construct_birthdays()` for generating
-these objects.
+Define `Birthday` class.
 
 `Birthday` objects are initiated, stored and used internally by
 `DailyPrompt`.
 
 """
 
-from typing import List, Tuple
+from typing import List
 import datetime
 
 from .exceptions import (
-    BirthdayErrorGroup, IncorrectParameterTypeError, IncorrectDateFormatError,
+    BirthdayInitGroup, IncorrectParameterTypeError, IncorrectDateFormatError,
     NullYearError, DateDoesntExistError
     )
 
 
 class Birthday:
-    def __init__(self, date: str | datetime.date, name: str):
+    def __init__(self, date: str, name: str):
         self.date = date
         self.name = name
         self.date_obj: datetime.date
 
-        if isinstance(date, datetime.date):
-            self.date_obj = date
-        elif not isinstance(date, str):
-            raise IncorrectParameterTypeError(
-                'date', type(date).__name__, 'birthday', name, 'string or datetime.date')
+        err_list = []
+        if not isinstance(date, str):
+            err_list.append(IncorrectParameterTypeError(
+                'date', type(date).__name__, 'birthday', name, 'string or datetime.date'))
+        else:
+            self.date_obj = self.resolve_date_obj(date, err_list)
         
         if not isinstance(name, str):
-            raise IncorrectParameterTypeError(
-                'name', type(name).__name__, 'birthday', name, 'string')
+            err_list.append(IncorrectParameterTypeError(
+                'name', type(name).__name__, 'birthday', expected_type='string'))
         
-        date_parts = self.date.split('-')
+        if len(err_list) > 0:
+            raise BirthdayInitGroup('BirthdayInitGroup', tuple(err_list))
+    
+    def resolve_date_obj(
+            self, date: str, err_list: List[Exception]
+            ) -> datetime.date | None:
+        date_parts = self.date.split('-', 2)
         try:
             date_parts = [int(pt) for pt in date_parts]
         except ValueError:
-            raise IncorrectDateFormatError(self.date, self.name)
+            err_list.append(IncorrectDateFormatError(self.date, self.name))
+            return None
         
         if len(date_parts) == 3:
             if date_parts[0] == datetime.date.min.year:
-                raise NullYearError(
-                    self.date, self.name, datetime.date.min.year)
+                err_list.append(
+                    NullYearError(
+                        self.date, self.name, datetime.date.min.year))
+                return None
         elif len(date_parts) == 2:
             date_parts.insert(0, datetime.date.min.year)
         else:
-            raise IncorrectDateFormatError(self.date, self.name)
+            err_list.append(IncorrectDateFormatError(self.date, self.name))
+            return None
         
+        date_obj = None
         try:
-            self.date_obj = datetime.date(*date_parts)
+            date_obj = datetime.date(*date_parts)
         except ValueError:
-            raise DateDoesntExistError(self.date, self.name)
-
-
-def construct_birthdays(birthdays: List[Tuple[str, str]]) -> List[Birthday]:
-    bdays = []
-    err_list = []
-    for bday in birthdays:
-        try:
-            bdays.append(Birthday(*bday))
-        except (IncorrectParameterTypeError, IncorrectDateFormatError,
-                NullYearError, DateDoesntExistError
-                ) as err:
-            err_list.append(err)
-    if len(err_list) > 0:
-        raise BirthdayErrorGroup('BirthdayErrorGroup', tuple(err_list))
-    return bdays
+            err_list.append(DateDoesntExistError(self.date, self.name))
+            return None
+        else:
+            return date_obj
