@@ -33,10 +33,6 @@ class TestPrimaryPromptInit(unittest.TestCase):
         with self.assertRaises(IncorrectParameterTypeError):
             PrimaryPrompt(line_width=None)
 
-    def testIncorrectParameterTypeErrorDailyPromptOnInit(self):
-        with self.assertRaises(IncorrectParameterTypeError):
-            PrimaryPrompt(daily_prompt_on_init='False')
-
     def testLineWidthLessThanOneErrorNine(self):
         with self.assertRaises(LineWidthLessThanTenError):
             PrimaryPrompt(line_width=9)

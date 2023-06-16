@@ -60,8 +60,9 @@ JSON file:
 ```
 
 If you do not wish to have time tag prompts or birthday notifications,
-you may leave either of the two JSON keys `null`. Please note that both
-keys must always be present in the file in order for it to be valid.
+you may leave either (or both) of the two JSON keys `null`. Please note
+that both keys must always be defined as arrays or nulls in order for
+the file to be valid.
 
 ```json
 {
@@ -75,7 +76,7 @@ keys must always be present in the file in order for it to be valid.
 If the tag is still active and user enters a statement, the next prompt
 will reprint the tag:
 
-```python
+```
 coffee time> print('Hello, world!')
 Hello, world!
 coffee time> _
@@ -84,17 +85,15 @@ coffee time> _
 When the tag is no longer active, the next prompt will show the default
 prompt. Here, the prompt is entered at 08:30.
 
-```python
+```
 coffee time> print('Testing')
 Testing
 >>> _
 ```
 
-If the reference of `DailyPrompt` object has been handed as a parameter
-to the initialization of `PrimaryPrompt` object, the birthdays will be
-printed when a prompt is entered after midnight. In the following
-example, the first statement is entered at 23:59 on 15 June 2023 and the
-second at 00:00 on 16 June 2023.
+The birthday notifications will be printed when a prompt is entered
+after midnight. In the following example, the first statement is entered
+at 23:59 on 15 June 2023 and the second at 00:00 on 16 June 2023.
 
 ```
 >>> print('Today is 15 June.')
@@ -141,12 +140,6 @@ sys.ps2 = secondary_prompt
 If no file exists in the path defined in parameter `json_path`, a sample
 file will be copied there. Strings `~` and `~user` will be replaced by
 user directory path, i.e., environment variable USERPROFILE in Windows
-and HOME in Unix. You may add your personal list of birthdays and time
-tags to the JSON file and set either key `"birthdays"` or `"timeTags"`
-as `null`. The edited values will be used when the interactive prompt is
-restarted.
-
-```
-Created a JSON file with sample data and using it. Creation path:
-C:\Users\username\time_tag_birthday.json
-```
+and HOME in Unix. You may edit this sample file according to your
+personal preferences. The edited values will be used when the
+interactive prompt is restarted.

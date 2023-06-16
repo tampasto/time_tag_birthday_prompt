@@ -1,5 +1,5 @@
 """
-Define `DailyPrompt` class for birthday notifications.
+Define `BirthdayNotifier` class for birthday notifications.
 
 """
 
@@ -13,7 +13,7 @@ from .data_loader import DataLoader
 from .exceptions import ConstructBirthdaysGroup
 
 
-class DailyPrompt:
+class BirthdayNotifier:
     """
     Class for printing weekdays and birthday reminders on interactive
     mode startup.
@@ -42,7 +42,7 @@ class DailyPrompt:
             line_width: int
             ) -> None:
         """
-        Initialize a daily prompt object. Invoked by PrimaryPrompt.
+        Initialize a birthday notifier object. Invoked by PrimaryPrompt.
         
         Parameters
         ----------

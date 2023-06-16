@@ -2,7 +2,7 @@
 Define `Birthday` class.
 
 `Birthday` objects are initiated, stored and used internally by
-`DailyPrompt`.
+`BirthdayNotifier`.
 
 """
 

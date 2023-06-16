@@ -12,7 +12,7 @@ import os.path
 import shutil
 import textwrap
 
-from .daily_prompt import DailyPrompt
+from .birthday_notifier import BirthdayNotifier
 from .data_loader import DataLoader
 from .exceptions import (
     ConstructTimeTagsGroup, IncorrectParameterTypeError,
@@ -35,7 +35,7 @@ class PrimaryPrompt:
     
     Attributes
     ----------
-    daily_prompt
+    birthday_notifier
     default_prompt
     tag_end_prompt
     line_width
@@ -86,8 +86,8 @@ class PrimaryPrompt:
         OSError
             May be raised if JSON file could not be read or created.
         """
-        self.daily_prompt: DailyPrompt
-        """Reference to a daily prompt object if birthday reminders
+        self.birthday_notifier: BirthdayNotifier
+        """Reference to a birthday notifier object if birthday reminders
         should be printed when date changes."""
         self.default_prompt = default_prompt
         """Text to be shown in prompt when no time tag is active."""
@@ -117,7 +117,7 @@ class PrimaryPrompt:
                 )
             data_loader = self._construct_data_loader(json_path)
         
-        self.daily_prompt = DailyPrompt(
+        self.birthday_notifier = BirthdayNotifier(
             data_loader, birthday_notify_days, line_width)
         
         if not isinstance(birthday_notify_days, int):
@@ -155,9 +155,9 @@ class PrimaryPrompt:
                 self._messages.extend([
                     str(exc) for exc in err_group.exceptions])
         
-        # Method aliases from DailyPrompt
-        self.print_birthdays = self.daily_prompt.print_birthdays
-        self.time_machine = self.daily_prompt.time_machine
+        # Method aliases from BirthdayNotifier
+        self.print_birthdays = self.birthday_notifier.print_birthdays
+        self.time_machine = self.birthday_notifier.time_machine
     
     def print_time_tags(self) -> None:
         """Print the list of time tags."""
@@ -181,10 +181,10 @@ class PrimaryPrompt:
         if self._print_init and self._messages:
             prompt += '\n' + self._format_messages() + '\n'
 
-        if self.daily_prompt and (
+        if self.birthday_notifier and (
                 self._print_init
                 or self._last_prompt_date != date.today()):
-            prompt += self.daily_prompt.get_str() + '\n'
+            prompt += self.birthday_notifier.get_str() + '\n'
         self._last_prompt_date = date.today()
 
         self._print_init = False
