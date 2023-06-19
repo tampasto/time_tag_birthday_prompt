@@ -56,7 +56,8 @@ class PrimaryPrompt:
             birthday_notify_days: int = 30,
             default_prompt: str = '>>> ',
             tag_end_prompt: str = '> ',
-            line_width: int = 70
+            line_width: int = 70,
+            data_loader: DataLoader | None = None
             ) -> None:
         """
         Initialize a primary prompt object.
@@ -74,6 +75,8 @@ class PrimaryPrompt:
             Text to be written in prompt after the time tag.
         line_width : int, default 70
             How many characters fit on one line.
+        data_loader : DataLoader or None, default None
+            Override `data_loader` for testing purposes.
         
         Raises
         ------
@@ -101,21 +104,27 @@ class PrimaryPrompt:
         self._last_prompt_date = date.today()
         self._print_init = True
         
-        data_loader: DataLoader | None = None
-        if not isinstance(json_path, str):
+        if not (isinstance(data_loader, DataLoader) or data_loader is None):
             raise IncorrectParameterTypeError(
-                'json_path', type(json_path).__name__, 'primary prompt',
-                expected_type='string'
+                'data_loader', type(data_loader).__name__, 'primary prompt',
+                expected_type='DataLoader or None'
                 )
-        json_path = os.path.abspath(os.path.expanduser(json_path))
-        try:
-            data_loader = self._construct_data_loader(json_path)
-        except FileNotFoundError:
-            shutil.copy(sample_json_path, json_path)
-            self._messages.append(
-                f'Created a JSON file with sample data and using it. Creation path: {json_path}'
-                )
-            data_loader = self._construct_data_loader(json_path)
+        if data_loader is None:
+            if not isinstance(json_path, str):
+                raise IncorrectParameterTypeError(
+                    'json_path', type(json_path).__name__, 'primary prompt',
+                    expected_type='string'
+                    )
+            json_path = os.path.abspath(os.path.expanduser(json_path))
+            try:
+                data_loader = self._construct_data_loader(json_path)
+            except FileNotFoundError:
+                shutil.copy(sample_json_path, json_path)
+                self._messages.append(
+                    'Created a JSON file with sample data and using it. '
+                    f'Creation path: {json_path}'
+                    )
+                data_loader = self._construct_data_loader(json_path)
         
         self.birthday_notifier = BirthdayNotifier(
             data_loader, birthday_notify_days, line_width)
@@ -154,6 +163,7 @@ class PrimaryPrompt:
             except ConstructTimeTagsGroup as err_group:
                 self._messages.extend([
                     str(exc) for exc in err_group.exceptions])
+        self._messages.extend(self.birthday_notifier.messages)
         
         # Method aliases from BirthdayNotifier
         self.print_birthdays = self.birthday_notifier.print_birthdays
@@ -177,25 +187,26 @@ class PrimaryPrompt:
         return self.get_str(datetime.now())
     
     def get_str(self, now: datetime):
-        prompt = ''
+        prolog = ''
         if self._print_init and self._messages:
-            prompt += '\n' + self._format_messages() + '\n'
+            prolog += '\n' + self._format_messages() + '\n'
 
+        today = date(now.year, now.month, now.day)
         if self.birthday_notifier and (
                 self._print_init
-                or self._last_prompt_date != date.today()):
-            prompt += self.birthday_notifier.get_str() + '\n'
-        self._last_prompt_date = date.today()
+                or self._last_prompt_date != today):
+            prolog += self.birthday_notifier.get_str() + '\n'
+        self._last_prompt_date = today
 
         self._print_init = False
+        return prolog + self.get_prompt(now)
 
+    def get_prompt(self, now: datetime) -> str:
         time_tag = self.get_time_tag(now)
-
         if time_tag:
-            prompt += time_tag + self.tag_end_prompt
+            return time_tag + self.tag_end_prompt
         else:
-            prompt += self.default_prompt
-        return prompt
+            return self.default_prompt
     
     def _format_messages(self) -> str:
         msg_list = []

@@ -40,7 +40,7 @@ class DataLoader:
         ------
         OSError
             Problems reading JSON file from file object.
-        JSONDecodeError
+        json.JSONDecodeError
             JSON data file is not valid JSON.
         CorruptJSONFileGroup of CorruptJSONFileError
             JSON data file does not conform to the correct format.
@@ -63,7 +63,6 @@ class DataLoader:
                 list_obj=self.data_object['birthdays'],
                 list_name='birthdays',
                 rec_fields=['birthday date', 'name'],
-                path=path,
                 err_list=err_list
                 )
         
@@ -80,7 +79,6 @@ class DataLoader:
                 list_obj=self.data_object['timeTags'],
                 list_name='timeTags',
                 rec_fields=['start time', 'stop time', 'text'],
-                path=path,
                 err_list=err_list
                 )
         
@@ -89,7 +87,7 @@ class DataLoader:
     
     def _validate_list(
             self, list_obj: List | None, list_name: str, rec_fields: List[str],
-            path: str, err_list: List[Exception]
+            err_list: List[Exception]
             ) -> None:
         if list_obj is None:
             return

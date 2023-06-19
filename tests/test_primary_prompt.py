@@ -1,185 +1,232 @@
-from datetime import datetime, date
+from datetime import datetime
+from tempfile import TemporaryFile
+from typing import Tuple
 import unittest
 
 from time_tag_birthday_prompt.primary_prompt import PrimaryPrompt
 
+from time_tag_birthday_prompt.data_loader import DataLoader
 from time_tag_birthday_prompt.exceptions import (
-    BirthdayNotifyDaysLessThanZeroError, IncorrectParameterTypeError, LineWidthLessThanTenError)
+    BirthdayNotifyDaysLessThanZeroError, IncorrectParameterTypeError,
+    LineWidthLessThanTenError
+    )
 from time_tag_birthday_prompt.time_tag import TimeTag
 
 TDAY = 2023, 6, 10
 
 
-class TestPrimaryPromptInit(unittest.TestCase):
+class TestPrimaryPrompt__init__(unittest.TestCase):
     """Test `PrimaryPrompt` object `__init__()` method."""
 
-    def testIncorrectParameterTypeErrorBirthdayNotifyDays(self):
+    def testParam_birthday_notify_days_incorrectType(self):
         with self.assertRaises(IncorrectParameterTypeError):
             PrimaryPrompt(birthday_notify_days=(5, 6))
     
-    def testBirthdayNotifyDaysLessThanZeroErrorMinusOne(self):
+    def testParam_birthday_notify_days_BirthdayNotifyDaysLessThanZeroError_minusOne(self):
         with self.assertRaises(BirthdayNotifyDaysLessThanZeroError):
             PrimaryPrompt(birthday_notify_days=-1)
 
-    def testIncorrectParameterTypeErrorDefaultPrompt(self):
+    def testParam_default_prompt_incorrectType(self):
         with self.assertRaises(IncorrectParameterTypeError):
             PrimaryPrompt(default_prompt=-1)
 
-    def testIncorrectParameterTypeErrorTagEndPrompt(self):
+    def testParam_tag_end_prompt_incorrectType(self):
         with self.assertRaises(IncorrectParameterTypeError):
             PrimaryPrompt(tag_end_prompt=-1)
 
-    def testIncorrectParameterTypeErrorLineWidth(self):
+    def testParam_line_width_incorrectType(self):
         with self.assertRaises(IncorrectParameterTypeError):
             PrimaryPrompt(line_width=None)
 
-    def testLineWidthLessThanOneErrorNine(self):
+    def testParam_line_width_LineWidthLessThanOneError_nine(self):
         with self.assertRaises(LineWidthLessThanTenError):
             PrimaryPrompt(line_width=9)
 
-    def testLineWidthLessThanOneErrorMinusOne(self):
+    def testParam_line_width_LineWidthLessThanOneError_minusOne(self):
         with self.assertRaises(LineWidthLessThanTenError):
             PrimaryPrompt(line_width=-1)
 
 
-class TestPrimaryPromptGetStr(unittest.TestCase):
-    """Test `PrimaryPrompt` object `__str__()` method."""
+class TestPrimaryPrompt_get_str(unittest.TestCase):
+    """Test `PrimaryPrompt` object `get_str()` method."""
+
+    def testPrologMessages(self):
+        pass
+
+    def testPrologBirthdayNotifier(self):
+        pass
+
+
+class TestPrimaryPrompt_get_prompt(unittest.TestCase):
+    """Test `PrimaryPrompt` object `get_prompt()` method."""
+
+    def assertPromptEqual(
+            self, expect: str, time: Tuple[int, int], json: str,
+            default_prompt: str = '>>> ', tag_end_prompt: str = '> '):
+        dl = None
+        with TemporaryFile(mode='w+', encoding='utf-8') as tf:
+            tf.write('{"timeTags": [' + json + '], "birthdays": null}')
+            tf.seek(0)
+            dl = DataLoader(tf, '<testing>')
+        pp = PrimaryPrompt(
+            default_prompt=default_prompt,
+            tag_end_prompt=tag_end_prompt,
+            data_loader=dl
+            )
+        self.assertEqual(pp.get_prompt(datetime(*(TDAY + time))), expect)
+
 
     def testTagJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 8, 59)), '>>> ')
+        self.assertPromptEqual(
+            expect='>>> ',
+            time=(8, 59),
+            json='["09:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagStartTime(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 9, 0)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(9, 0),
+            json='["09:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagJustBeforeStop(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 14, 59)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(14, 59),
+            json='["09:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagStopTime(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 15, 0)), '>>> ')
+        self.assertPromptEqual(
+            expect='>>> ',
+            time=(15, 0),
+            json='["09:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagEndAtMidnightJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '00:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 23, 59)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(23, 59),
+            json='["09:00", "00:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagEndAtMidnightAtMidnight(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '00:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 0, 0)), '>>> ')
+        self.assertPromptEqual(
+            expect='>>> ',
+            time=(0, 0),
+            json='["09:00", "00:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagStartAtMidnightJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('00:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 23, 59)), '>>> ')
+        self.assertPromptEqual(
+            expect='>>> ',
+            time=(23, 59),
+            json='["00:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagStartAtMidnightAtMidnight(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('00:00', '15:00', 'text')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 0, 0)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(0, 0),
+            json='["00:00", "15:00", "text"]',
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapPrecedingStartsFirst(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text'),
-            TimeTag('14:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 14, 30)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(14, 30),
+            json=('["09:00", "15:00", "text"], '
+                  '["14:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapLatterStartsFirst(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('14:00', '15:00', 'text'),
-            TimeTag('09:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 14, 30)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(14, 30),
+            json=('["14:00", "15:00", "text"], '
+                  '["09:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapMidJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text'),
-            TimeTag('14:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 13, 59)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(13, 59),
+            json=('["09:00", "15:00", "text"], '
+                  '["14:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapMidJustAfter(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text'),
-            TimeTag('14:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 14, 0)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(14, 0),
+            json=('["09:00", "15:00", "text"], '
+                  '["14:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapEndJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text'),
-            TimeTag('14:00', '16:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 14, 59)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(14, 59),
+            json=('["09:00", "15:00", "text"], '
+                  '["14:00", "16:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapEndJustAfter(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '15:00', 'text'),
-            TimeTag('14:00', '16:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 15, 0)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(15, 0),
+            json=('["09:00", "15:00", "text"], '
+                  '["14:00", "16:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapBoundaryJustBefore(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '11:00', 'text'),
-            TimeTag('11:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 10, 59)), 'text> ')
+        self.assertPromptEqual(
+            expect='text> ',
+            time=(10, 59),
+            json=('["09:00", "11:00", "text"], '
+                  '["11:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
     def testTagOverlapBoundaryJustAfter(self):
-        primary_prompt = PrimaryPrompt(default_prompt='>>> ', tag_end_prompt='> ')
-        str(primary_prompt)
-        primary_prompt.time_tags = [
-            TimeTag('09:00', '11:00', 'text'),
-            TimeTag('11:00', '15:00', 'str')
-            ]
-        self.assertEqual(primary_prompt.get_str(datetime(*TDAY, 11, 0)), 'str> ')
+        self.assertPromptEqual(
+            expect='str> ',
+            time=(11, 0),
+            json=('["09:00", "11:00", "text"], '
+                  '["11:00", "15:00", "str"]'),
+            default_prompt='>>> ',
+            tag_end_prompt='> '
+            )
 
 
 if __name__ == '__main__':

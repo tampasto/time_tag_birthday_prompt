@@ -1,238 +1,249 @@
-from datetime import date
 from tempfile import TemporaryFile
-from typing import List
+from typing import List, Callable
 import unittest
 
 from time_tag_birthday_prompt.data_loader import DataLoader
 
+from .extend_unittest import assertGroupMatchesExceptions
 from time_tag_birthday_prompt.exceptions import (
-    ConstructBirthdaysGroup, ConstructTimeTagsGroup, CorruptJSONFileError,
-    IncorrectDateFormatError, IncorrectParameterTypeError,
-    DateDoesntExistError, TimeDoesntExistError, IncorrectTimeFormatError
+    ConstructBirthdaysGroup, ConstructTimeTagsGroup, CorruptJSONFileGroup,
+    CorruptJSONFileError, IncorrectDateFormatError,
+    IncorrectParameterTypeError, DateDoesntExistError, TimeDoesntExistError,
+    IncorrectTimeFormatError
     )
 
 
-class TestDataLoaderInit(unittest.TestCase):
-    """Test `DataLoader` object `__init__()` method."""
-    
-    def matchExcText(self, file_txt: str, txt: str):
-        tf = TemporaryFile(mode='w+', encoding='utf-8')
-        tf.write(file_txt)
-        tf.seek(0)
-        with self.assertRaises(CorruptJSONFileError) as cm:
-            DataLoader(tf, '<testing>')
-        tf.close()
-        self.assertEqual(cm.exception.msg, txt)
-
-    def testCorruptJSONFileErrorBirthdayMissing(self):
-        self.matchExcText(
-            r'{"timeTags": []}',
-            "Either or both of fields 'birthdays' and 'timeTags' missing from root."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsMissing(self):
-        self.matchExcText(
-            r'{"birthdays": []}',
-            "Either or both of fields 'birthdays' and 'timeTags' missing from root."
-            )
-
-    def testCorruptJSONFileErrorBirthdayAndTimeTagsMissing(self):
-        self.matchExcText(
-            r'{}',
-            "Either or both of fields 'birthdays' and 'timeTags' missing from root."
-            )
-
-    def testCorruptJSONFileErrorBirthdayAsStr(self):
-        self.matchExcText(
-            r'{"birthdays": "birthdays", "timeTags": []}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsAsStr(self):
-        self.matchExcText(
-            r'{"birthdays": [], "timeTags": "timeTags"}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    @unittest.expectedFailure
-    def testBirthdayAndTimeTagsAsArray(self):
-        self.matchExcText(
-            r'{"birthdays": [], "timeTags": []}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    @unittest.expectedFailure
-    def testBirthdayAsNullAndTimeTagsAsArray(self):
-        self.matchExcText(
-            r'{"birthdays": null, "timeTags": []}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    @unittest.expectedFailure
-    def testBirthdayAsArrayAndTimeTagsAsNull(self):
-        self.matchExcText(
-            r'{"birthdays": [], "timeTags": null}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    @unittest.expectedFailure
-    def testBirthdayAndTimeTagsAsNull(self):
-        self.matchExcText(
-            r'{"birthdays": null, "timeTags": null}',
-            "Either or both of fields 'birthdays' and 'timeTags' are not of type array or null."
-            )
-
-    def testCorruptJSONFileErrorBirthdayAsStr(self):
-        self.matchExcText(
-            r'{"birthdays": [["", ""], "", ["", ""]], "timeTags": null}',
-            "Array 'birthdays' index 1 is not an array."
-            )
-
-    def testCorruptJSONFileErrorBirthdayWith4Items(self):
-        self.matchExcText(
-            r'{"birthdays": [["", ""], ["", "", ""]], "timeTags": null}',
-            "Array 'birthdays' index 1 length is not 2."
-            )
-
-    def testCorruptJSONFileErrorBirthdayDateAsInteger(self):
-        self.matchExcText(
-            r'{"birthdays": [["", ""], ["", ""], [5, "nm"]], "timeTags": null}',
-            "Array 'birthdays' index 2 \(name nm\) field\[0\] birthday date is not a string."
-            )
-
-    def testCorruptJSONFileErrorBirthdayNameAsNull(self):
-        self.matchExcText(
-            r'{"birthdays": [["", ""], [5, null], ["", ""]], "timeTags": null}',
-            "Array 'birthdays' index 1 field\[1\] name is not a string."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsAsStr(self):
-        self.matchExcText(
-            r'{"timeTags": [["", "", ""], ["", "", ""], ""], "birthdays": null}',
-            "Array 'timeTags' index 2 is not an array."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsWith3Items(self):
-        self.matchExcText(
-            r'{"timeTags": [["", "", ""], ["", ""]], "birthdays": null}',
-            "Array 'timeTags' index 0 length is not 3."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsStartTimeAsArray(self):
-        self.matchExcText(
-            r'{"timeTags": [["", "", ""], ["", "", ""], [[1, 2], "", "tx"]], "birthdays": null}',
-            "Array 'timeTags' index 2 \(text tx\) field\[0\] start time is not a string."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsEndTimeAsNull(self):
-        self.matchExcText(
-            r'{"timeTags": [["", null, "tx"], ["", "", ""], ["", "", ""]], "birthdays": null}',
-            "Array 'timeTags' index 0 \(text tx\) field\[1\] stop time is not a string."
-            )
-
-    def testCorruptJSONFileErrorTimeTagsTextAsObject(self):
-        self.matchExcText(
-            r'{"timeTags": [["", "", ""], ["", "", ""], ["", "", {"a": 1}]], "birthdays": null}',
-            "Array 'timeTags' index 2 field\[2\] text is not a string."
-            )
-
-
-class TestConstructBirthdays(unittest.TestCase):
-    """Test `construct_birthdays()` method."""
-    
-    def matchExcTypeList(self, file_txt: str, exc_type_list: List):
-        tf = TemporaryFile(mode='w+', encoding='utf-8')
+def assertMethodRaisesGroup(
+        self: unittest.TestCase, file_txt: str, exc_type_list: List,
+        method_name: str, group_type: object
+        ) -> None:
+    dl = None
+    with TemporaryFile(mode='w+', encoding='utf-8') as tf:
         tf.write(file_txt)
         tf.seek(0)
         dl = DataLoader(tf, '<testing>')
-        with self.assertRaises(ConstructBirthdaysGroup) as cm:
-            dl.construct_birthdays()
-        tf.close()
-        for exc in cm.exception.exceptions:
-            is_found = False
-            for exc_type in exc_type_list:
-                if isinstance(exc, exc_type):
-                    exc_type_list.remove(exc_type)
-                    is_found = True
-                    break
-            self.assertTrue(is_found)
-        self.assertEqual(len(exc_type_list), 0)
 
-    def testBirthdayErrorGroupOneException(self):
-        self.matchExcTypeList(
-            r'{"birthdays": [["191x-01-01", "name"]], "timeTags": null}',
+    method_callable = getattr(dl, method_name)
+    with self.assertRaises(group_type) as cm:
+        method_callable()
+    assertGroupMatchesExceptions(self, cm.exception, exc_type_list)
+
+
+class TestDataLoader__init__(unittest.TestCase):
+    """Test `DataLoader` object `__init__()` method."""
+    
+    def matchCorruptJSONFileErrorMsg(self, file_txt: str, err_msgs: List[str]):
+        err_group = None
+        with TemporaryFile(mode='w+', encoding='utf-8') as tf:
+            tf.write(file_txt)
+            tf.seek(0)
+            if len(err_msgs) > 0:
+                with self.assertRaises(CorruptJSONFileGroup) as cm:
+                    DataLoader(tf, '<testing>')
+                err_group = cm.exception
+            else:
+                try:
+                    DataLoader(tf, '<testing>')
+                except CorruptJSONFileGroup as e_group:
+                    unexpected_msgs = [err.msg for err in e_group.exceptions]
+                    self.fail(f'Unexpected message(s) {unexpected_msgs!r}, expected no messages')
+                return
+        
+        unexpected_msgs = []
+        for err in err_group.exceptions:
+            if err.msg in err_msgs:
+                err_msgs.remove(err.msg)
+            else:
+                unexpected_msgs.append(err.msg)
+        if len(unexpected_msgs) > 0 or len(err_msgs) > 0:
+            self.fail(f'Unexpected message(s) {unexpected_msgs!r}, lacking message(s) {err_msgs!r}')
+
+    def testJSON_CorruptJSONFileError_birthdayMissing(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": []}',
+            ["Field 'birthdays' missing from root."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsMissing(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": []}',
+            ["Field 'timeTags' missing from root."]
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayAndTimeTagsMissing(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{}',
+            ["Field 'birthdays' missing from root.",
+             "Field 'timeTags' missing from root."]
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayAsStr(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": "birthdays", "timeTags": []}',
+            ["Field 'birthdays' is not of type array or null."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsAsStr(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [], "timeTags": "timeTags"}',
+            ["Field 'timeTags' is not of type array or null."]
+            )
+
+    def testJSON_birthdayAndTimeTagsAsEmptyArray(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [], "timeTags": []}',
+            []
+            )
+
+    def testJSON_birthdayAsNullAndTimeTagsAsArray(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": null, "timeTags": []}',
+            []
+            )
+
+    def testJSON_birthdayAsArrayAndTimeTagsAsNull(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [], "timeTags": null}',
+            []
+            )
+
+    def testJSON_birthdayAndTimeTagsAsNull(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": null, "timeTags": null}',
+            []
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayRecAsStr(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [["", ""], "", ["", ""]], "timeTags": null}',
+            ["Array 'birthdays' index 1 is not an array."]
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayWith4Items(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [["", ""], ["", "", ""]], "timeTags": null}',
+            ["Array 'birthdays' index 1 length is not 2."]
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayDateAsInt(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [["", ""], ["", ""], [5, "nm"]], "timeTags": null}',
+            ["Array 'birthdays' index 2 (name 'nm') field[0] birthday date is not a string."]
+            )
+
+    def testJSON_CorruptJSONFileError_birthdayDateAsIntNameAsNull(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"birthdays": [["", ""], [5, null], ["", ""]], "timeTags": null}',
+            ["Array 'birthdays' index 1 (name None) field[0] birthday date is not a string.",
+             "Array 'birthdays' index 1 field[1] name is not a string."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsAsStr(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": [["", "", ""], ["", "", ""], ""], "birthdays": null}',
+            ["Array 'timeTags' index 2 is not an array."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsWith3Items(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": [["", "", ""], ["", ""]], "birthdays": null}',
+            ["Array 'timeTags' index 1 length is not 3."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsStartTimeAsArray(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": [["", "", ""], ["", "", ""], [[1, 2], "", "tx"]], "birthdays": null}',
+            ["Array 'timeTags' index 2 (text 'tx') field[0] start time is not a string."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsEndTimeAsNull(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": [["", null, "tx"], ["", "", ""], ["", "", ""]], "birthdays": null}',
+            ["Array 'timeTags' index 0 (text 'tx') field[1] stop time is not a string."]
+            )
+
+    def testJSON_CorruptJSONFileError_timeTagsTextAsObject(self):
+        self.matchCorruptJSONFileErrorMsg(
+            r'{"timeTags": [["", "", ""], ["", "", ""], ["", "", {"a": 1}]], "birthdays": null}',
+            ["Array 'timeTags' index 2 field[2] text is not a string."]
+            )
+
+
+class TestDataLoader_construct_birthdays(unittest.TestCase):
+    """Test `DataLoader` object `construct_birthdays()` method."""
+
+    def assertConstructBirthdaysRaisesGroup(
+            self, birthdays_array_txt: str, exc_type_list: List):
+        assertMethodRaisesGroup(
+            self,
+            '{"birthdays": [' + birthdays_array_txt + '], "timeTags": null}',
+            exc_type_list,
+            'construct_birthdays',
+            ConstructBirthdaysGroup
+            )
+
+    def test_ConstructBirthdaysGroup_oneException(self):
+        self.assertConstructBirthdaysRaisesGroup(
+            '["191x-01-01", "name"]',
             [IncorrectDateFormatError]
             )
 
-    def testBirthdayErrorGroupStillOneException(self):
-        self.matchExcTypeList(
-            r'{"birthdays": [["191x-01-01", 1]], "timeTags": null}',
-            [IncorrectDateFormatError]
+    def test_ConstructBirthdaysGroup_twoExceptionsOnTwo(self):
+        self.assertConstructBirthdaysRaisesGroup(
+            '["191x-01-01", ""], '
+            '["false", "name"]',
+            [IncorrectDateFormatError, IncorrectDateFormatError]
             )
 
-    def testBirthdayErrorGroupTwoExceptions(self):
-        self.matchExcTypeList(
-            r'{"birthdays": [["191x-01-01", 1], [false, "name"]], '
-            r'"timeTags": null}',
-            [IncorrectDateFormatError, IncorrectParameterTypeError]
-            )
-
-    def testBirthdayErrorGroupThreeExceptions(self):
-        self.matchExcTypeList(
-            r'{"birthdays": [["191x-01-01", 1], [[2023, 6, 1], []], '
-            r'["2023-01-61", "name"]], "timeTags": null}',
-            [IncorrectDateFormatError, IncorrectParameterTypeError,
+    def test_ConstructBirthdaysGroup_threeExceptionsOnThree(self):
+        self.assertConstructBirthdaysRaisesGroup(
+            '["191x-01-01", ""], '
+            '["2023, 6, 1", ""], '
+            '["2023-01-61", "name"]',
+            [IncorrectDateFormatError, IncorrectDateFormatError,
              DateDoesntExistError]
             )
 
 
-class TestConstructTimeTags(unittest.TestCase):
-    """Test `construct_time_tags()` method."""
-    
-    def matchExcTypeList(self, file_txt: str, exc_type_list: List):
-        tf = TemporaryFile(mode='w+', encoding='utf-8')
-        tf.write(file_txt)
-        tf.seek(0)
-        dl = DataLoader(tf, '<testing>')
-        with self.assertRaises(ConstructTimeTagsGroup) as cm:
-            dl.construct_time_tags()
-        tf.close()
-        self.assertEqual(len(exc_type_list), len(cm.exception.exceptions))
-        for exc_i, exc in enumerate(cm.exception.exceptions):
-            if not isinstance(exc, exc_type_list[exc_i]):
-                self.fail(
-                    f'Exc class {exc.__class__.__name__} is '
-                    f'not {exc_type_list[exc_i].__name__}'
-                    )
+class TestDataLoader_construct_time_tags(unittest.TestCase):
+    """Test `DataLoader` object `construct_time_tags()` method."""
 
-    def testTimeTagErrorGroupOneException(self):
-        self.matchExcTypeList(
-            r'{"timeTags": [[[0, "start"], "15:00", "text"]], "birthdays": null}',
-            [IncorrectParameterTypeError]
+    def assertConstructTimeTagsRaisesGroup(
+            self, time_tags_array_txt: str, exc_type_list: List):
+        assertMethodRaisesGroup(
+            self,
+            '{"timeTags": [' + time_tags_array_txt + '], "birthdays": null}',
+            exc_type_list,
+            'construct_time_tags',
+            ConstructTimeTagsGroup
             )
 
-    def testTimeTagErrorGroupStillOneException(self):
-        self.matchExcTypeList(
-            r'{"timeTags": [[[0, "start"], "xx:00", "text"]], "birthdays": null}',
-            [IncorrectParameterTypeError]
+    def test_ConstructTimeTagsGroup_oneException(self):
+        self.assertConstructTimeTagsRaisesGroup(
+            '["start", "15:00", "text"]',
+            [IncorrectTimeFormatError]
             )
 
-    def testTimeTagErrorGroupTwoExceptions(self):
-        self.matchExcTypeList(
-            r'{"timeTags": [["09:00", "-1:00", "text"], '
-            r'["09:00", "15:-1", "text"]], "birthdays": null}',
+    def test_ConstructTimeTagsGroup_twoExceptionsOnOne(self):
+        self.assertConstructTimeTagsRaisesGroup(
+            '["start", "xx:00", "text"]',
+            [IncorrectTimeFormatError, IncorrectTimeFormatError]
+            )
+
+    def test_ConstructTimeTagsGroup_twoExceptionsOnTwo(self):
+        self.assertConstructTimeTagsRaisesGroup(
+            '["09:00", "-1:00", "text"], '
+            '["09:00", "15:-1", "text"]',
             [TimeDoesntExistError, TimeDoesntExistError]
             )
 
-    def testTimeTagErrorGroupTwoExceptions(self):
-        self.matchExcTypeList(
-            r'{"timeTags": ['
-                r'["09:xx", "15:00", "text"], '
-                r'["09:xx", "15:00", "text"], '
-                r'["09:00", [0, "stop"], "text"]'
-            r'], "birthdays": null}',
-            [IncorrectTimeFormatError, IncorrectTimeFormatError,
-             IncorrectParameterTypeError]
+    def test_ConstructTimeTagsGroup_threeExceptionsOnTwo(self):
+        self.assertConstructTimeTagsRaisesGroup(
+            '["09:xx", "15:00", "text"], '
+            '["09:00", "15:00", "text"], '
+            '["09:65", "25:00", "123"]',
+            [IncorrectTimeFormatError, TimeDoesntExistError,
+             TimeDoesntExistError]
             )
 
 

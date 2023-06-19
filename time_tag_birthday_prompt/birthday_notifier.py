@@ -1,16 +1,16 @@
 """
-Define `BirthdayNotifier` class for birthday notifications.
+Define `BirthdayNotifier` class for birthday notification generation.
 
 """
 
 from datetime import datetime, date
-from typing import List
+from typing import List, Callable
 import collections
 import textwrap
 
 from .birthday import Birthday
 from .data_loader import DataLoader
-from .exceptions import ConstructBirthdaysGroup
+from .exceptions import ConstructBirthdaysGroup, IncorrectParameterTypeError
 
 
 class BirthdayNotifier:
@@ -20,15 +20,19 @@ class BirthdayNotifier:
     
     Attributes
     ----------
-    birthday_notify_days
+    birthday_notify_days: int
         How many days before the birthday a notification is shown. Copy
         of PrimaryPrompt value.
-    line_width
+    line_width: int
         How many characters fit on one line. Copy of PrimaryPrompt
         value.
-    birthdays
-        List of  `Birthday` objects.
+    birthdays : list of Birthday or None
+        Serialized `Birthday` objects from JSON.
+    messages : list of str
+        Validation messages which arose from JSON data. Extracted from
+        `ConstructBirthdaysGroup`.
     """
+
     _BDTuple = collections.namedtuple('_BDTuple', ['date', 'name'])
     _Proximity = collections.namedtuple('_Proximity', [
         'days_until', 'name', 'bd_age', 'weekday_desc'])
@@ -58,10 +62,12 @@ class BirthdayNotifier:
         self.line_width = line_width
         """How many characters fit on one line."""
         self.birthdays: List[Birthday] | None = None
-        """List of `Birthday` objects."""
+        """Serialized `Birthday` objects from JSON."""
+        self.messages: List[str] = []
+        """Validation messages which arose from JSON data. Extracted from
+        `ConstructBirthdaysGroup`.
+        """
 
-        self._messages: List[str] = []
-        self._print_init = True
         self._birthdays_disabled = False
 
         if data_loader:
@@ -69,10 +75,11 @@ class BirthdayNotifier:
             try:
                 self.birthdays = data_loader.construct_birthdays()
             except ConstructBirthdaysGroup as err_group:
-                self._messages.extend([
+                self.messages.extend([
                     str(err) for err in err_group.exceptions])
     
-    def time_machine(self, date_string: str) -> None:
+    def time_machine(
+            self, date_string: str, print_func: Callable = print) -> None:
         """
         Print birthday notifications from another date.
         
@@ -80,29 +87,51 @@ class BirthdayNotifier:
         ----------
         date_string : str
             Destination time in format YYYY-MM-DD.
+        print_func : callable
+            Override print function for testing purposes.
         """
+        if not isinstance(date_string, str):
+            raise IncorrectParameterTypeError(
+                'date_string', type(date_string).__name__, 'BirthdayNotifier',
+                expected_type='string'
+                )
+        if not callable(print_func):
+            raise IncorrectParameterTypeError(
+                'print_func', type(print_func).__name__, 'BirthdayNotifier',
+                expected_type='string'
+                )
+        
         dt = datetime.strptime(date_string, '%Y-%m-%d')
         d = date(dt.year, dt.month, dt.day)
-        print(self.get_str(today=d))
+        print_func(self.get_str(today=d))
         
-    def print_birthdays(self) -> None:
-        """Print the list of birthdays."""
-        print()
-        if self._print_init or not self.birthdays:
-            if self._messages:
-                print('\n' + self._format_messages() + '\n')
+    def print_birthdays(self, print_func: Callable = print) -> None:
+        """Print the list of birthdays.
+        
+        Parameters
+        ----------
+        print_func : callable
+            Override print function for testing purposes.
+        """
+        print_func()
+        if not self.birthdays:
+            if self.messages:
+                print_func('\n' + self._format_messages() + '\n')
             else:
-                print('No birthdays or messages.')
-        self._print_init = False
-        if self.birthdays:
+                print_func('No birthdays or messages.')
+
+        else:
             for bday in self.birthdays:
                 date_str = None
                 if isinstance(bday.date, date):
                     date_str = bday.date.strftime('%Y-%m-%d')
                 else:
                     date_str = bday.date
-                print(f'{date_str}  {bday.name}')
-        print()
+                print_func(f'{date_str}  {bday.name}')
+        
+            if len(self.birthdays) == 0:
+                print_func('No birthdays defined.')
+        print_func()
     
     def __str__(self) -> str:
         return self.get_str()
@@ -110,14 +139,18 @@ class BirthdayNotifier:
     def get_str(
             self, today: date | None = None
             ) -> str:
+        """Generate birthday notifications.
+        
+        Parameters
+        ----------
+        today : date or None, default None
+            Override current date for testing purposes.
+        """
+        ret_str = ''
         if self._birthdays_disabled:
-            return ''
+            return ret_str
         if today is None:
             today = date.today()
-        ret_str = ''
-        if self._print_init and self._messages:
-            ret_str += '\n' + self._format_messages() + '\n'
-        self._print_init = False
         ret_str += (
             '\n' + self.line_width * '-' + '\n'
             + self._format_date(today) + '\n'
@@ -129,7 +162,7 @@ class BirthdayNotifier:
     
     def _format_messages(self) -> str:
         msg_list = []
-        for msg in self._messages:
+        for msg in self.messages:
             first_line = textwrap.wrap(msg, self.line_width)[0]
             msg = msg[len(first_line):].lstrip()
             if msg:
