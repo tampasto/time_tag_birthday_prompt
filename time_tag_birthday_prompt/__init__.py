@@ -12,7 +12,8 @@ created, a sample file will be copied to this location.
 
 Examples
 --------
-The Python startup file could be written as follows. See `__init__()` parameter `print_on_init`.
+The Python startup file could be written as follows. See `__init__()`
+parameter `print_on_init`.
 
     import sys
     from time_tag_birthday_prompt import PrimaryPrompt, SecondaryPrompt
@@ -25,7 +26,7 @@ The Python startup file could be written as follows. See `__init__()` parameter 
 
 """
 
-__version__ = '0.9.0'
+__version__ = '0.9.5'
 
 from .primary_prompt import PrimaryPrompt
 from .secondary_prompt import SecondaryPrompt

@@ -77,8 +77,6 @@ class TestBirthday__init__(unittest.TestCase):
     def testParam_date_DateDoesntExistError_dayOver(self):
         with self.assertRaises(BirthdayInitGroup) as cm:
             Birthday(f'2023-02-30', 'name')
-        # assertGroupMatchesExceptions(
-        #     self, cm.exception, [DateDoesntExistError])
         assertGroupMatchesExceptions(
             self, cm.exception, [DateDoesntExistError])
 

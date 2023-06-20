@@ -1,11 +1,12 @@
-from . import __doc__, PrimaryPrompt
+from . import __doc__ as init_doc, PrimaryPrompt
 
 
-print(__doc__)
+print(init_doc)
 
-print('\nDefined birthdays:')
-primary_prompt = PrimaryPrompt()
-primary_prompt.print_birthdays()
+primary_prompt = PrimaryPrompt(tag_end_prompt='')
 
-print('\nDefined time tags:')
+print('Defined time tags in JSON\n-------------------------', end='')
 primary_prompt.print_time_tags()
+
+print('Defined birthdays in JSON\n-------------------------', end='')
+primary_prompt.print_birthdays()

@@ -1,6 +1,5 @@
 """
-Define `TimeTag` class and a function `construct_time_tags()` for generating
-these objects.
+Define `TimeTag` class.
 
 `TimeTag` objects are initiated, stored and used internally by
 `PrimaryPrompt`.
@@ -16,25 +15,64 @@ from .exceptions import (
 
 
 class TimeTag:
+    """
+    Class of `TimeTag` objects.
+
+    Initialized from the JSON data.
+
+    Attributes
+    ----------
+    start
+    stop
+    text
+    start_tuple : Tuple[int, int]
+        Tuple of (hours, minutes) resolved from string `start`.
+    stop_tuple : Tuple[int, int]
+        Tuple of (hours, minutes) resolved from string `stop`.
+    """
     def __init__(self, start: str, stop: str, text: str):
+        """
+        Initialize a `TimeTag` object.
+
+        Parameters
+        ----------
+        start : str
+            Start time in format HH:MM.
+        stop : str
+            Stop time in format HH:MM.
+        text : str
+            Tag text printed in front of command line prompt.
+
+        Raises
+        ------
+        TimeTagInitGroup
+            The `ExceptionGroup` may contain errors
+            `IncorrectParameterTypeError`, `IncorrectTimeFormatError`
+            and/or `TimeDoesntExistError`.
+        """
         self.start = start
+        """Start time in format HH:MM."""
         self.stop = stop
+        """Stop time in format HH:MM."""
         self.text = text
+        """Tag text printed in front of command line prompt."""
         self.start_tuple: Tuple[int, int]
+        """Tuple of (hours, minutes) resolved from string `start`."""
         self.stop_tuple: Tuple[int, int]
+        """Tuple of (hours, minutes) resolved from string `stop`."""
 
         err_list = []
         if not isinstance(start, str):
             err_list.append(IncorrectParameterTypeError(
                 'start', type(start).__name__, 'time tag', text, 'string'))
         else:
-            self.start_tuple = self.resolve_tuple('start', self.start, err_list)
+            self.start_tuple = self._resolve_tuple('start', self.start, err_list)
         
         if not isinstance(stop, str):
             err_list.append(IncorrectParameterTypeError(
                 'stop', type(stop).__name__, 'time tag', text, 'string'))
         else:
-            self.stop_tuple = self.resolve_tuple('stop', self.stop, err_list)
+            self.stop_tuple = self._resolve_tuple('stop', self.stop, err_list)
         
         if not isinstance(text, str):
             err_list.append(IncorrectParameterTypeError(
@@ -43,7 +81,7 @@ class TimeTag:
         if len(err_list) > 0:
             raise TimeTagInitGroup('TimeTagInitGroup', tuple(err_list))
     
-    def resolve_tuple(
+    def _resolve_tuple(
             self, field_name: str, time_value: str, err_list: List[Exception]
             ) -> Tuple[int] | None:
         sp = time_value.split(':', 1)

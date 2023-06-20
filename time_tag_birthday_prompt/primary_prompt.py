@@ -17,7 +17,7 @@ from .data_loader import DataLoader
 from .exceptions import (
     ConstructTimeTagsGroup, IncorrectParameterTypeError,
     BirthdayNotifyDaysLessThanZeroError, LineWidthLessThanTenError,
-    CorruptJSONFileGroup
+    DataLoaderInitGroup
     )
 from .time_tag import TimeTag
 
@@ -26,7 +26,8 @@ sample_json_path = str(Path(__file__).parent / 'sample_time_tag_birthday.json')
 
 class PrimaryPrompt:
     """
-    Class for adding time tags to interactive mode primary prompt.
+    Class for adding time tags and birthdays to interactive mode primary
+    prompt.
 
     The object is expected to be assinged to `sys.ps1` to change the
     prompt in interactive mode. This can be done in Python startup
@@ -75,7 +76,7 @@ class PrimaryPrompt:
             Text to be written in prompt after the time tag.
         line_width : int, default 70
             How many characters fit on one line.
-        data_loader : DataLoader or None, default None
+        data_loader : DataLoader, optional
             Override `data_loader` for testing purposes.
         
         Raises
@@ -91,7 +92,8 @@ class PrimaryPrompt:
         """
         self.birthday_notifier: BirthdayNotifier
         """Reference to a birthday notifier object if birthday reminders
-        should be printed when date changes."""
+        should be printed when date changes.
+        """
         self.default_prompt = default_prompt
         """Text to be shown in prompt when no time tag is active."""
         self.tag_end_prompt = tag_end_prompt
@@ -175,12 +177,14 @@ class PrimaryPrompt:
         if self._print_init or not self.time_tags:
             if self._messages:
                 print('\n' + self._format_messages() + '\n')
-            else:
-                print('\nNo messages.\n')
+            elif not self.time_tags:
+                print('\nNo messages or time tags.\n')
         self._print_init = False
         if self.time_tags:
             for tag in self.time_tags:
-                print(f'{tag.start} to {tag.stop}  {tag.text}{self.tag_end_prompt}')
+                start_txt = ':'.join([f'{num:02}' for num in tag.start_tuple])
+                stop_txt = ':'.join([f'{num:02}' for num in tag.stop_tuple])
+                print(f'{start_txt} to {stop_txt}  {tag.text}{self.tag_end_prompt}')
         print()
     
     def __str__(self) -> str:
@@ -195,7 +199,7 @@ class PrimaryPrompt:
         if self.birthday_notifier and (
                 self._print_init
                 or self._last_prompt_date != today):
-            prolog += self.birthday_notifier.get_str() + '\n'
+            prolog += self.birthday_notifier.get_str(today) + '\n'
         self._last_prompt_date = today
 
         self._print_init = False
@@ -240,7 +244,7 @@ class PrimaryPrompt:
         with open(json_path, 'r', encoding='utf-8') as fp:
             try:
                 data_loader = DataLoader(fp, json_path)
-            except CorruptJSONFileGroup as err_group:
+            except DataLoaderInitGroup as err_group:
                 self._messages.extend(err_group.get_messages())
                 return None
         return data_loader

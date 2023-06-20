@@ -23,7 +23,8 @@ def assertGroupMatchesExceptions(
 
 
 class OverridePrint:
-    """Callable class to override `print()`.
+    """
+    Callable class to override `print()`.
     
     Only takes an optional single string argument.
     """

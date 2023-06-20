@@ -10,7 +10,7 @@ import json
 
 from .birthday import Birthday
 from .exceptions import (
-    ConstructBirthdaysGroup, ConstructTimeTagsGroup, CorruptJSONFileGroup,
+    ConstructBirthdaysGroup, ConstructTimeTagsGroup, DataLoaderInitGroup,
     TimeTagInitGroup, BirthdayInitGroup, CorruptJSONFileError
     )
 from .time_tag import TimeTag
@@ -40,12 +40,17 @@ class DataLoader:
         ------
         OSError
             Problems reading JSON file from file object.
-        json.JSONDecodeError
-            JSON data file is not valid JSON.
-        CorruptJSONFileGroup of CorruptJSONFileError
+        DataLoaderInitGroup
             JSON data file does not conform to the correct format.
+            Contains exceptions of class `CorruptJSONFileError`.
         """
-        self.data_object: DataObjectType = json.load(file_obj)
+        try:
+            self.data_object: DataObjectType = json.load(file_obj)
+        except json.JSONDecodeError as err:
+            cjfe = CorruptJSONFileError(
+                f'Corrupt JSON on row {err.lineno}, col {err.colno}: {err.msg}'
+                )
+            raise DataLoaderInitGroup(path, (cjfe,))
         self.birthdays_disabled = False
 
         err_list: List[Exception] = []
@@ -69,7 +74,7 @@ class DataLoader:
         if 'timeTags' not in self.data_object:
             err_list.append(
                 CorruptJSONFileError("Field 'timeTags' missing from root."))
-            raise CorruptJSONFileGroup(path, tuple(err_list))
+            raise DataLoaderInitGroup(path, tuple(err_list))
         elif not (isinstance(self.data_object['timeTags'], list)
                 or self.data_object['timeTags'] is None):
             err_list.append(CorruptJSONFileError(
@@ -83,7 +88,7 @@ class DataLoader:
                 )
         
         if len(err_list) > 0:
-            raise CorruptJSONFileGroup(path, tuple(err_list))
+            raise DataLoaderInitGroup(path, tuple(err_list))
     
     def _validate_list(
             self, list_obj: List | None, list_name: str, rec_fields: List[str],
@@ -122,6 +127,9 @@ class DataLoader:
         Raises
         ------
         ConstructBirthdaysGroup
+            The `ExceptionGroup` may contain errors
+            `IncorrectParameterTypeError`, `IncorrectDateFormatError`,
+            `NullYearError` and/or `DateDoesntExistError`.
         """
         if self.data_object is None:
             return None
@@ -151,6 +159,9 @@ class DataLoader:
         Raises
         ------
         ConstructTimeTagsGroup
+            The `ExceptionGroup` may contain errors
+            `IncorrectParameterTypeError`, `IncorrectTimeFormatError`
+            and/or `TimeDoesntExistError`.
         """
         if self.data_object is None:
             return None

@@ -15,8 +15,7 @@ from .exceptions import ConstructBirthdaysGroup, IncorrectParameterTypeError
 
 class BirthdayNotifier:
     """
-    Class for printing weekdays and birthday reminders on interactive
-    mode startup.
+    Class for printing birthday reminders on interactive mode startup.
     
     Attributes
     ----------
@@ -106,7 +105,8 @@ class BirthdayNotifier:
         print_func(self.get_str(today=d))
         
     def print_birthdays(self, print_func: Callable = print) -> None:
-        """Print the list of birthdays.
+        """
+        Print the list of birthdays.
         
         Parameters
         ----------
@@ -123,10 +123,10 @@ class BirthdayNotifier:
         else:
             for bday in self.birthdays:
                 date_str = None
-                if isinstance(bday.date, date):
-                    date_str = bday.date.strftime('%Y-%m-%d')
+                if bday.date_obj.year == date.min.year:
+                    date_str = (5 * ' ') + bday.date_obj.strftime('%m-%d')
                 else:
-                    date_str = bday.date
+                    date_str = bday.date_obj.strftime('%Y-%m-%d')
                 print_func(f'{date_str}  {bday.name}')
         
             if len(self.birthdays) == 0:
@@ -139,11 +139,12 @@ class BirthdayNotifier:
     def get_str(
             self, today: date | None = None
             ) -> str:
-        """Generate birthday notifications.
+        """
+        Generate birthday notifications.
         
         Parameters
         ----------
-        today : date or None, default None
+        today : date, optional
             Override current date for testing purposes.
         """
         ret_str = ''

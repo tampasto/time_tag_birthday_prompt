@@ -10,7 +10,6 @@ from time_tag_birthday_prompt.exceptions import (
     BirthdayNotifyDaysLessThanZeroError, IncorrectParameterTypeError,
     LineWidthLessThanTenError
     )
-from time_tag_birthday_prompt.time_tag import TimeTag
 
 TDAY = 2023, 6, 10
 
@@ -50,8 +49,113 @@ class TestPrimaryPrompt__init__(unittest.TestCase):
 class TestPrimaryPrompt_get_str(unittest.TestCase):
     """Test `PrimaryPrompt` object `get_str()` method."""
 
-    def testPrologMessages(self):
-        pass
+    def call_get_str(
+            self, json: str, return_second_call: bool,
+            second_call_date_obj: datetime | None = None
+            ) -> str:
+        dl = None
+        with TemporaryFile(mode='w+', encoding='utf-8') as tf:
+            tf.write(json)
+            tf.seek(0)
+            dl = DataLoader(tf, '<testing>')
+        pp = PrimaryPrompt(
+            birthday_notify_days=30,
+            line_width = 70,
+            data_loader=dl
+            )
+        date_obj = datetime(2023, 6, 15, 12, 30, 15)
+        if return_second_call:
+            pp.get_str(date_obj)
+            if second_call_date_obj:
+                date_obj = second_call_date_obj
+            return pp.get_str(date_obj)
+        else:
+            return pp.get_str(date_obj)
+
+    def testPrologMessagesTimeTagFormatError(self):
+        gs = self.call_get_str(
+            '{"timeTags": [["xx:00", "15:00", "text"]], "birthdays": null}',
+            return_second_call=False
+            )
+        gs = ' '.join(gs.split())
+        self.assertIn("Incorrect start time format 'xx:00' for tag 'text'. Expected HH:MM.", gs)
+
+    def testPrologMessagesBirthdayFormatError(self):
+        gs = self.call_get_str(
+            '{"timeTags": null, "birthdays": [["xxxx-01-01", "name"]]}',
+            return_second_call=False
+            )
+        gs = ' '.join(gs.split())
+        self.assertIn("Incorrect birthday format 'xxxx-01-01' for 'name'. Expected YYYY-MM-DD or MM-DD.", gs)
+
+    def testPrologMessagesTimeTagAndBirthdayFormatError(self):
+        gs = self.call_get_str(
+            '{"timeTags": [["xx:00", "15:00", "text"]], '
+            '"birthdays": [["xxxx-01-01", "name"]]}',
+            return_second_call=False
+            )
+        gs = ' '.join(gs.split())
+        self.assertTrue(
+            "Incorrect start time format 'xx:00' for tag 'text'. Expected HH:MM." in gs
+            and "Incorrect birthday format 'xxxx-01-01' for 'name'. Expected YYYY-MM-DD or MM-DD." in gs
+            )
+
+    def testPrologMessagesTimeTagFormatErrorSecondCall(self):
+        gs = self.call_get_str(
+            '{"timeTags": [["xx:00", "15:00", "text"]], "birthdays": null}',
+            return_second_call=True
+            )
+        gs = ' '.join(gs.split())
+        self.assertNotIn("Incorrect start time format 'xx:00' for tag 'text'. Expected HH:MM.", gs)
+
+    def testPrologMessagesBirthdayFormatErrorSecondCall(self):
+        gs = self.call_get_str(
+            '{"timeTags": null, "birthdays": [["xxxx-01-01", "name"]]}',
+            return_second_call=True
+            )
+        gs = ' '.join(gs.split())
+        self.assertNotIn("Incorrect birthday format 'xxxx-01-01' for 'name'. Expected YYYY-MM-DD or MM-DD.", gs)
+
+    def testPrologMessagesTimeTagAndBirthdayFormatErrorSecondCall(self):
+        gs = self.call_get_str(
+            '{"timeTags": [["xx:00", "15:00", "text"]], '
+            '"birthdays": [["xxxx-01-01", "name"]]}',
+            return_second_call=True
+            )
+        gs = ' '.join(gs.split())
+        self.assertTrue(
+            "Incorrect start time format 'xx:00' for tag 'text'. Expected HH:MM." not in gs
+            and "Incorrect birthday format 'xxxx-01-01' for 'name'. Expected YYYY-MM-DD or MM-DD." not in gs
+            )
+
+    def testPrologMessagesBirthdayFirstCall(self):
+        gs = self.call_get_str(
+            '{"timeTags": null, "birthdays": [["1950-06-16", "name"]]}',
+            return_second_call=False
+            )
+        gs = ' '.join(gs.split())
+        # datetime: 2023-06-15 12:30:15
+        self.assertIn('Birthday of name (73) tomorrow', gs)
+
+    def testPrologMessagesBirthdaySecondCallBeforeMidnight(self):
+        gs = self.call_get_str(
+            '{"timeTags": null, "birthdays": [["1950-06-16", "name"]]}',
+            return_second_call=True,
+            second_call_date_obj=datetime(2023, 6, 15, 23, 59, 59)
+            )
+        gs = ' '.join(gs.split())
+        # datetime first call: 2023-06-15 12:30:15
+        self.assertNotIn('Birthday of name (73) tomorrow', gs)
+
+    def testPrologMessagesBirthdaySecondCallAfterMidnight(self):
+        gs = self.call_get_str(
+            '{"timeTags": null, "birthdays": [["1950-06-16", "name"]]}',
+            return_second_call=True,
+            second_call_date_obj=datetime(2023, 6, 16, 0, 0, 0)
+            )
+        gs = ' '.join(gs.split())
+        # datetime first call: 2023-06-15 12:30:15
+        self.assertIn('Birthday of name (73) today', gs)
 
     def testPrologBirthdayNotifier(self):
         pass

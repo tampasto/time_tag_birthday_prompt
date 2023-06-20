@@ -1,14 +1,13 @@
 from tempfile import TemporaryFile
-from typing import List, Callable
+from typing import List
 import unittest
 
 from time_tag_birthday_prompt.data_loader import DataLoader
 
 from .extend_unittest import assertGroupMatchesExceptions
 from time_tag_birthday_prompt.exceptions import (
-    ConstructBirthdaysGroup, ConstructTimeTagsGroup, CorruptJSONFileGroup,
-    CorruptJSONFileError, IncorrectDateFormatError,
-    IncorrectParameterTypeError, DateDoesntExistError, TimeDoesntExistError,
+    ConstructBirthdaysGroup, ConstructTimeTagsGroup, DataLoaderInitGroup,
+    IncorrectDateFormatError, DateDoesntExistError, TimeDoesntExistError,
     IncorrectTimeFormatError
     )
 
@@ -38,14 +37,15 @@ class TestDataLoader__init__(unittest.TestCase):
             tf.write(file_txt)
             tf.seek(0)
             if len(err_msgs) > 0:
-                with self.assertRaises(CorruptJSONFileGroup) as cm:
+                with self.assertRaises(DataLoaderInitGroup) as cm:
                     DataLoader(tf, '<testing>')
                 err_group = cm.exception
             else:
                 try:
                     DataLoader(tf, '<testing>')
-                except CorruptJSONFileGroup as e_group:
-                    unexpected_msgs = [err.msg for err in e_group.exceptions]
+                except DataLoaderInitGroup as dl_group:
+                    unexpected_msgs = [
+                        err.msg for err in dl_group.exceptions]
                     self.fail(f'Unexpected message(s) {unexpected_msgs!r}, expected no messages')
                 return
         
@@ -57,6 +57,19 @@ class TestDataLoader__init__(unittest.TestCase):
                 unexpected_msgs.append(err.msg)
         if len(unexpected_msgs) > 0 or len(err_msgs) > 0:
             self.fail(f'Unexpected message(s) {unexpected_msgs!r}, lacking message(s) {err_msgs!r}')
+
+    def testJSON_CorruptJSONFileError_JSONDecodeError(self):
+        is_found = False
+        with TemporaryFile(mode='w+', encoding='utf-8') as tf:
+            tf.write(r'{"timeTags: []}')
+            tf.seek(0)
+            with self.assertRaises(DataLoaderInitGroup) as cm:
+                DataLoader(tf, '<testing>')
+            for err in cm.exception.exceptions:
+                if 'Corrupt JSON on row' in str(err):
+                    is_found = True
+                    break
+        self.assertTrue(is_found)
 
     def testJSON_CorruptJSONFileError_birthdayMissing(self):
         self.matchCorruptJSONFileErrorMsg(

@@ -4,10 +4,11 @@ Define exceptions of the package.
 Exceptions are raised out of classes only during class initialization
 and only related to `__init__` parameter values. Exceptions related to
 corrupt JSON data file will not be propagated out of classes but
-displayed in string form in the console.
+displayed in string form in the console. JSON exceptions are gathered
+into exception groups when raised.
 
-No expections are expected to be raised after initialization. Even if
-exceptions were raised when `sys.ps1` or `sys.ps2` call `str()` on their
+No exceptions are expected to be raised after initialization. Even if
+bugs raised exceptions when `sys.ps1` or `sys.ps2` call `str()` on their
 values, the stack trace texts would be suspended and the prompt would be
 an empty string.
 
@@ -64,12 +65,12 @@ class BirthdayNotifyDaysLessThanZeroError(Exception):
             )
 
 
-# Internally handled exceptions: will be shown in prompt as string.
+# Internally handled JSON exceptions
 
 
-class CorruptJSONFileGroup(ExceptionGroup):
+class DataLoaderInitGroup(ExceptionGroup):
     def __init__(self, path: str, exc_tuple: Tuple[Exception]) -> None:
-        super().__init__('CorruptJSONFileGroup', exc_tuple)
+        super().__init__('DataLoaderInitGroup', exc_tuple)
         self.path = path
     
     def get_messages(self) -> List[str]:

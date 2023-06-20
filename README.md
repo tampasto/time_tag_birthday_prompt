@@ -10,7 +10,7 @@ birthdays. No more waking up to a grumpy face and silent treatment when
 you were 'simply' supposed to buy a box of chocolates the day before. In
 addition, the library also enables setting up time-sensitive messages to
 the prompt text in Python interactive mode (REPL). For example you may
-set your prompt to show ``fancy eye bags?>`` from 00:00 to 02:00 and
+set your prompt to show ``fancy eye bags?>`` from 23:00 to 02:00 and
 ``zombie‑in‑waiting>`` from 02:00 to 06:00.
 
 As we are only human, the library also abstracts away the Gregorian
@@ -117,6 +117,10 @@ coffee time> print('Long '
          ... 'statement',
          ... some_variable)
 ```
+
+If the package is run as a script with
+``py -m time_tag_birthday_prompt``, it will print the package
+documentation string, defined time tags and defined birthdays.
 
 Setting up
 ----------

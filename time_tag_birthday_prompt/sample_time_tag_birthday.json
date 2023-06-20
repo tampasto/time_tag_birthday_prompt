@@ -1,16 +1,18 @@
 {
-    "// timeTags": "The format is [start time, stop time, tag name]. The minute range activation works like Python slice notation `minutes[start:stop]`.",
+    "# timeTags": "The format is [start time, stop time, prompt text] where time is in format HH:MM. Minutes are active according to Python slice notation `minutes[start:stop]`.",
     "timeTags": [
-        ["00:00", "02:00", "fancy eye bags?"]
-        ,["02:00", "06:00", "zombie-in-waiting"]
-        ,["06:00", "08:30", "coffee time"]
+        ["06:00", "08:30", "coffee"]
         ,["10:50", "11:50", "lunch"]
-        ,["22:00", "00:00", "getting late"]
+        ,["22:00", "23:00", "getting late"]
+        ,["23:00", "02:00", "fancy eye bags?"]
+        ,["02:00", "06:00", "zombie-in-waiting"]
     ],
     
-    "// birthdays": "The first item is a date in format YYYY-MM-DD or MM-DD and the second item is the name of the person.",
+    "# birthdays": "The format is [date, name] where date is in format YYYY-MM-DD or MM-DD.",
     "birthdays": [
-        ["1917-12-06", "Finland"]
+        ["05-05", "Europe"]
+        ,["1945-10-24", "United Nations"]
+        ,["1917-12-06", "Finland"]
         ,["1937-06-23", "Martti Ahtisaari"]
         ,["1939-10-27", "John Cleese"]
         ,["1940-11-22", "Terry Gilliam"]

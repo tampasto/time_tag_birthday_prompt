@@ -287,6 +287,51 @@ class TestBirthdayNotifier_get_str(unittest.TestCase):
         gs = ' '.join(gs.split())
         self.assertIn('Birthday of Abacus in 14 days -', gs)
 
+    def testNotifyDays1DayAfterTomorrow(self):
+        bn = get_birthday_notifier(
+                '["2008-07-01", "Abacus"]',
+                birthday_notify_days=1
+                )
+        gs = bn.get_str(today=date(2023, 6, 29))
+        gs = ' '.join(gs.split())
+        self.assertIn(', 2023-06-29 -', gs)
+
+    def testNotifyDays1Tomorrow(self):
+        bn = get_birthday_notifier(
+                '["2008-07-01", "Abacus"]',
+                birthday_notify_days=1
+                )
+        gs = bn.get_str(today=date(2023, 6, 30))
+        gs = ' '.join(gs.split())
+        self.assertIn('Birthday of Abacus (15) tomorrow -', gs)
+
+    def testNotifyDays1Today(self):
+        bn = get_birthday_notifier(
+                '["2008-07-01", "Abacus"]',
+                birthday_notify_days=1
+                )
+        gs = bn.get_str(today=date(2023, 7, 1))
+        gs = ' '.join(gs.split())
+        self.assertIn('Birthday of Abacus (15) today -', gs)
+
+    def testNotifyDays0Tomorrow(self):
+        bn = get_birthday_notifier(
+                '["2008-07-01", "Abacus"]',
+                birthday_notify_days=0
+                )
+        gs = bn.get_str(today=date(2023, 6, 30))
+        gs = ' '.join(gs.split())
+        self.assertIn(', 2023-06-30 -', gs)
+
+    def testNotifyDays0Today(self):
+        bn = get_birthday_notifier(
+                '["2008-07-01", "Abacus"]',
+                birthday_notify_days=0
+                )
+        gs = bn.get_str(today=date(2023, 7, 1))
+        gs = ' '.join(gs.split())
+        self.assertIn('Birthday of Abacus (15) today -', gs)
+
 
 if __name__ == '__main__':
     unittest.main()

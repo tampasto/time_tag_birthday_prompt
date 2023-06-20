@@ -8,7 +8,6 @@ from time_tag_birthday_prompt.secondary_prompt import SecondaryPrompt
 from time_tag_birthday_prompt.data_loader import DataLoader
 from time_tag_birthday_prompt.exceptions import IncorrectParameterTypeError
 from time_tag_birthday_prompt.primary_prompt import PrimaryPrompt
-from time_tag_birthday_prompt.time_tag import TimeTag
 
 TDAY = 2023, 6, 10
 

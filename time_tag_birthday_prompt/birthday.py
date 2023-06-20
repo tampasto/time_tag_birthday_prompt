@@ -16,7 +16,36 @@ from .exceptions import (
 
 
 class Birthday:
+    """
+    Class of `Birthday` objects.
+
+    Initialized from the JSON data.
+
+    Attributes
+    ----------
+    date
+    name
+    date_obj : datetime.date
+        Resolved date based on string `date`.
+    """
     def __init__(self, date: str, name: str):
+        """
+        Initialize a `Birthday` object.
+
+        Parameters
+        ----------
+        date : str
+            Date in format YYYY-MM-DD or MM-DD.
+        name : str
+            Name of the person or thing having a birthday.
+
+        Raises
+        ------
+        BirthdayInitGroup
+            The `ExceptionGroup` may contain errors
+            `IncorrectParameterTypeError`, `IncorrectDateFormatError`,
+            `NullYearError` and/or `DateDoesntExistError`.
+        """
         self.date = date
         self.name = name
         self.date_obj: datetime.date
@@ -26,7 +55,7 @@ class Birthday:
             err_list.append(IncorrectParameterTypeError(
                 'date', type(date).__name__, 'birthday', name, 'string or datetime.date'))
         else:
-            self.date_obj = self.resolve_date_obj(date, err_list)
+            self.date_obj = self._resolve_date_obj(err_list)
         
         if not isinstance(name, str):
             err_list.append(IncorrectParameterTypeError(
@@ -35,9 +64,8 @@ class Birthday:
         if len(err_list) > 0:
             raise BirthdayInitGroup('BirthdayInitGroup', tuple(err_list))
     
-    def resolve_date_obj(
-            self, date: str, err_list: List[Exception]
-            ) -> datetime.date | None:
+    def _resolve_date_obj(
+            self, err_list: List[Exception]) -> datetime.date | None:
         date_parts = self.date.split('-', 2)
         try:
             date_parts = [int(pt) for pt in date_parts]
