@@ -37,7 +37,7 @@ Birthday of Dan Brown (59) on Thursday next week, Martti Ahtisaari
 (86) on Friday next week, Elon Musk (52) in 13 days, Aku Louhimies
 (55) in 18 days, Jasper Pääkkönen (43) in 30 days
 ----------------------------------------------------------------------
-coffee time> _
+coffee> _
 ```
 
 The above example is the output on 15 June 2023 and it's 06:00 to 08:29
@@ -47,7 +47,7 @@ JSON file:
 ```json
 {
     "timeTags": [
-        ["06:00", "08:30", "coffee time"]
+        ["06:00", "08:30", "coffee"]
     ],
     "birthdays": [
         ["1937-06-23", "Martti Ahtisaari"]
@@ -67,7 +67,7 @@ the file to be valid.
 ```json
 {
     "timeTags": [
-        ["06:00", "08:30", "coffee time"]
+        ["06:00", "08:30", "coffee"]
     ],
     "birthdays": null
 }
@@ -77,16 +77,16 @@ If the tag is still active and user enters a statement, the next prompt
 will reprint the tag:
 
 ```
-coffee time> print('Hello, world!')
+coffee> print('Hello, world!')
 Hello, world!
-coffee time> _
+coffee> _
 ```
 
 When the tag is no longer active, the next prompt will show the default
 prompt. Here, the prompt is entered at 08:30.
 
 ```
-coffee time> print('Testing')
+coffee> print('Testing')
 Testing
 >>> _
 ```
@@ -113,9 +113,9 @@ days, Jasper Pääkkönen (43) in 29 days
 The secondary prompt will follow the indent of the time tags.
 
 ```
-coffee time> print('Long '
-         ... 'statement',
-         ... some_variable)
+very long tag> print('Long '
+           ... 'statement',
+           ... some_variable)
 ```
 
 If the package is run as a script with
