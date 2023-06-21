@@ -23,4 +23,4 @@ authors = [
 repository = "https://github.com/tampasto/time_tag_birthday_prompt"
 
 [tool.setuptools.dynamic]
-version = {attr = "package.__version__"}
+version = {attr = "time_tag_birthday_prompt.__version__"}
