@@ -6,12 +6,10 @@ Python startup.
 As every avid coder knows how inexplicably inhumane feat it is to
 remember the birthdays of your friends and loved ones, this library
 makes it possible to automate the reminders for an arbitrary list of
-birthdays. No more waking up to a grumpy face and silent treatment when
-you were 'simply' supposed to buy a box of chocolates the day before. In
-addition, the library also enables setting up time-sensitive messages to
-the prompt text in Python interactive mode (REPL). For example you may
-set your prompt to show ``fancy eye bags?>`` from 23:00 to 02:00 and
-``zombie‑in‑waiting>`` from 02:00 to 06:00.
+birthdays. In addition, the library also enables setting up
+time-sensitive messages to the prompt text in Python interactive mode
+(REPL). For example you may set your prompt to show ``fancy eye bags?>``
+from 23:00 to 02:00 and ``zombie‑in‑waiting>`` from 02:00 to 06:00.
 
 As we are only human, the library also abstracts away the Gregorian
 notation of birthdays and tells the birthday will be ``on Thursday``
@@ -62,7 +60,8 @@ JSON file:
 If you do not wish to have time tag prompts or birthday notifications,
 you may leave either (or both) of the two JSON keys `null`. Please note
 that both keys must always be defined as arrays or nulls in order for
-the file to be valid.
+the file to be valid. If `birthdays` key is `null`, the startup prompt
+will not be printed.
 
 ```json
 {
@@ -118,12 +117,31 @@ very long tag> print('Long '
            ... some_variable)
 ```
 
-If the package is run as a script with
-``py -m time_tag_birthday_prompt``, it will print the package
-documentation string, defined time tags and defined birthdays.
+The package may also be run as a script. It can be used to check
+resolved values for time tags and birthdays. By default, it shows usage.
+Replace `py` with `python` in Unix and MacOS.
 
-Setting up
+```
+py -m time_tag_birthday_prompt
+```
+
+Installing
 ----------
+You may install the package with the following command. Replace `py`
+with `python` in Unix and MacOS.
+
+```
+py -m pip install time_tag_birthday_prompt@git+https://github.com/tampasto/time_tag_birthday_prompt.git
+```
+
+After installing the package it is ready to be imported. However, to set
+it up as the default prompt, you must create a startup script. You can
+create a new file such as `python_startup.py` in your desired directory
+and set the environment variable `PYTHONSTARTUP` to point to this file,
+i.e., `path_to_file/python_startup.py`. This file will be run every time
+the interactive mode is entered if not purposefully overrided by certain
+Python executable isolation switches.
+
 The Python startup file could look like the following:
 
 ```python
@@ -144,6 +162,20 @@ sys.ps2 = secondary_prompt
 If no file exists in the path defined in parameter `json_path`, a sample
 file will be copied there. Strings `~` and `~user` will be replaced by
 user directory path, i.e., environment variable USERPROFILE in Windows
-and HOME in Unix. You may edit this sample file according to your
-personal preferences. The edited values will be used when the
-interactive prompt is restarted.
+and HOME in Unix.
+
+The sample JSON file copied to the `json_path` parameter shows the
+format of the file and also contains two non-functional comment keys.
+This file is the same file as the one found in the package folder with
+name `sample_time_tag_birthday.json`.
+
+Commas are placed in the beginning of the rows as it is more common to
+append these lists by copying the last row rather than the second last.
+You may edit the file according to your personal preference as long as
+it stays valid JSON and holds the general original format.
+
+The edited values in the JSON file will be used when the interactive
+prompt is restarted.
+
+To see the full list of parameters of the classes and their
+documentation, you may use help function, such as `help(PrimaryPrompt)`.

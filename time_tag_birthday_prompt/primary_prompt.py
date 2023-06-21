@@ -88,7 +88,7 @@ class PrimaryPrompt:
         LineWidthLessThanTenError
             Raised when parameter `line_width` is less than ten.
         OSError
-            May be raised if JSON file could not be read or created.
+            Raised if JSON file could not be read or created.
         """
         self.birthday_notifier: BirthdayNotifier
         """Reference to a birthday notifier object if birthday reminders

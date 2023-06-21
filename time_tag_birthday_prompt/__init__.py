@@ -27,7 +27,7 @@ parameter `print_on_init`.
 """
 
 package_name = 'time_tag_birthday_prompt'
-__version__ = '0.9.5'
+__version__ = '1.0.0'
 
 from .primary_prompt import PrimaryPrompt
 from .secondary_prompt import SecondaryPrompt
