@@ -234,6 +234,11 @@ class PrimaryPrompt:
                 if time_start < time_stop:
                     if time_start <= now < time_stop:
                         txt = tag.text
+                
+                elif time_start == time_stop:
+                    if now.hour == time_stop.hour and now.minute == time_stop.minute:
+                        txt = tag.text
+                
                 else:
                     if now >= time_start or now < time_stop:
                         txt = tag.text
